@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:mimesisrpg.com)",
+      "WebSearch",
+      "WebFetch(domain:emshort.blog)",
+      "WebFetch(domain:brasslantern.org)",
+      "WebFetch(domain:eblong.com)",
+      "WebFetch(domain:jerz.setonhill.edu)",
+      "WebFetch(domain:inform-fiction.org)",
+      "Bash(test:*)",
+      "Bash(\"/c/Program Files/Inform7IDE/Compilers/inform7.exe\":*)",
+      "Bash(\"/c/Program Files/Inform7IDE/Compilers/inform6.exe\":*)",
+      "Bash(cat:*)",
+      "Bash(\"/c/Program:*)",
+      "Bash(bash:*)",
+      "Bash(python:*)",
+      "Bash(start:*)",
+      "Bash(mkdir:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(ls:*)",
+      "Bash(git push:*)",
+      "Bash(done)",
+      "Bash(cp:*)",
+      "Bash(git mv:*)",
+      "Bash(git rm:*)",
+      "Bash(git reset:*)",
+      "Bash(sha256sum:*)",
+      "Bash(git init:*)",
+      "Bash(gh repo:*)"
+    ]
+  }
+}
