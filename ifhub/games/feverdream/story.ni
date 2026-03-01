@@ -1,5 +1,10 @@
 "Fever Dream" by Anonymous
 
+Include Glulx Text Effects by Emily Short.
+
+To issue sound command (T - text):
+	say "[first custom style][T][roman type]".
+
 The story headline is "A Perceptual Horror".
 The story genre is "Horror".
 The story description is "Three items alter your perception. The world stays the same. You do not."
@@ -17,6 +22,12 @@ The fungus-consumed is a truth state that varies. The fungus-consumed is false.
 The spray-active is a truth state that varies. The spray-active is false.
 
 The cistern-drained is a truth state that varies. The cistern-drained is false.
+
+A thing can be moved or unmoved. A thing is usually unmoved.
+
+After taking something:
+	now the noun is moved;
+	continue the action.
 
 Chapter 2 - Regions
 
@@ -149,7 +160,7 @@ Understand "wrench" and "tool" as the pipe wrench.
 
 Chapter 2 - The Laboratory
 
-The Laboratory is a room. The Laboratory is in the Basement. It is south of the Stairwell. "A long room lined with workbenches and glass-fronted cabinets. Everything is labelled. Everything is in order. The labels are handwritten in the same careful script as the intake form upstairs. A passage leads north to the stairwell. East, a heavy door opens into cold storage.[if the player is wearing the spectacles][paragraph break]One of the glass cases, mounted on the far wall, holds something you missed before: a brass key, suspended on a wire inside the glass.[end if]"
+The Laboratory is a room. The Laboratory is in the Basement. It is south of the Stairwell. "A long room lined with workbenches and glass-fronted cabinets. Everything is labelled. Everything is in order. The labels are handwritten in the same careful script as the intake form upstairs. A passage leads north to the stairwell. East, a heavy door opens into cold storage.[if the player is wearing the spectacles and brass key is unmoved][paragraph break]One of the glass cases, mounted on the far wall, holds something you missed before: a brass key, suspended on a wire inside the glass.[otherwise] You see the shattered remains of the glass case.[end if]"
 
 The workbenches are scenery in the Laboratory.
 
@@ -159,8 +170,10 @@ The glass case is scenery in the Laboratory. The glass case is perception-hidden
 
 Instead of attacking the glass case:
 	if the player carries the pipe wrench:
+		issue sound command "SFX:glass";
 		say "You swing the wrench. The glass shatters cleanly. The brass key drops into your hand.";
 		now the brass key is carried by the player;
+		now the brass key is moved;
 		now the description of the glass case is "A shattered display case. Glass fragments cling to the frame.";
 	otherwise:
 		say "You rap your knuckles against it. Thin, but you cannot break it with your bare hands. You need something heavy."

@@ -172,9 +172,10 @@ div#gameport {
     });
   }
 
-  // Load ambient-audio.js then sound-effects.js (sequential to ensure order)
+  // Load ambient-audio.js then sound-engine.js + sound-config.js (sequential to ensure order)
   loadScript(soundBase + '/lib/ambient-audio.js')
-    .then(function () { return loadScript(soundBase + '/lib/sound-effects.js'); })
+    .then(function () { return loadScript(soundBase + '/lib/sound-engine.js'); })
+    .then(function () { return loadScript(soundBase + '/lib/sound-config.js'); })
     .then(function () {
       // Notify parent that sound is ready
       if (window.parent !== window) {

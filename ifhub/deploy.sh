@@ -39,9 +39,12 @@ WALKTHROUGH_DIRS=(
 WALKTHROUGH_FILES=(walkthrough.html walkthrough.txt walkthrough-guide.txt walkthrough_output.txt)
 
 # Sound asset definitions: local-id  sound-dir (relative to $I7_ROOT)
-#   Copies lib/ambient-audio.js, lib/sound-effects.js, and audio/ directory
+#   Copies lib/ambient-audio.js, lib/sound-engine.js, lib/sound-config.js, and audio/ directory
 declare -A SOUND_DIRS
-SOUND_DIRS=( [zork1-v3]="projects/zork1/web" )
+SOUND_DIRS=(
+  [zork1-v3]="projects/zork1/web"
+  [feverdream]="projects/feverdream/web"
+)
 
 for entry in "${GAMES[@]}"; do
   read -r id src bin <<< "$entry"
@@ -81,7 +84,7 @@ for entry in "${GAMES[@]}"; do
   if [[ -n "${SOUND_DIRS[$id]+x}" ]]; then
     snddir="$I7_ROOT/${SOUND_DIRS[$id]}"
     mkdir -p "$dest/lib"
-    for sf in ambient-audio.js sound-effects.js; do
+    for sf in ambient-audio.js sound-engine.js sound-config.js; do
       if [[ -f "$snddir/lib/$sf" ]]; then
         cp "$snddir/lib/$sf" "$dest/lib/$sf"
         echo "  $id: lib/$sf copied"

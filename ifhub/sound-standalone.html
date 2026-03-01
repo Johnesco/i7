@@ -11,7 +11,8 @@
     });
   }
   loadScript("lib/ambient-audio.js")
-    .then(function () { return loadScript("lib/sound-effects.js"); })
+    .then(function () { return loadScript("lib/sound-engine.js"); })
+    .then(function () { return loadScript("lib/sound-config.js"); })
     .catch(function (e) { console.log("[sound] Failed to load:", e); });
 })();
 </script>

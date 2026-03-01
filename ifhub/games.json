@@ -60,6 +60,7 @@
     "sourceLabel": "feverdream.ni",
     "source": "games/feverdream/story.ni",
     "binary": "games/feverdream/feverdream.ulx.js",
+    "sound": true,
     "card": {
       "title": "Fever Dream",
       "meta": "A Perceptual Horror",
