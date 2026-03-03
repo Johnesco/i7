@@ -14,6 +14,9 @@ bash tools/new-project.sh "My Game" mygame
 # Compile and set up web player
 bash tools/compile.sh mygame
 
+# Compile with embedded sound (requires Sounds/*.ogg at project root)
+bash tools/compile.sh mygame --sound
+
 # Play locally
 python -m http.server 8000 --directory projects/mygame/web
 # Open http://localhost:8000/play.html
@@ -60,12 +63,12 @@ ifhub/
 
 ## Projects
 
-| Project | Description | Web |
-|---------|-------------|-----|
-| **zork1** | Zork I: Inform 7 Edition (ZIL-to-I7 translation) | [Play](https://johnesco.github.io/zork1/) |
-| **dracula** | Dracula's Castle | [Play](https://johnesco.github.io/dracula/) |
-| **feverdream** | Fever Dream | — |
-| **sample** | Sample practice game (local-only) | — |
+| Project | Description | Sound | Web |
+|---------|-------------|-------|-----|
+| **zork1** | Zork I - The Great Underground Empire (ZIL-to-I7 translation) | 25 sounds (blorb) | [Play](https://johnesco.github.io/zork1/) |
+| **dracula** | Dracula's Castle | — | [Play](https://johnesco.github.io/dracula/) |
+| **feverdream** | Fever Dream | 1 sound (blorb) | — |
+| **sample** | Sample practice game (local-only) | — | — |
 
 Each project has its own `story.ni` source file, test suite, and optional web player. See each project's `CLAUDE.md` or `README.md` for details.
 
@@ -76,7 +79,7 @@ All scripts live in `tools/`. See [`tools/README.md`](tools/README.md) for full 
 | Script | Purpose |
 |--------|---------|
 | `new-project.sh` | Scaffold a new Inform 7 project with build, test, and deploy infrastructure |
-| `compile.sh` | Compile a project (I7 → I6 → Glulx) and update its web player |
+| `compile.sh` | Compile a project (I7 → I6 → Glulx → optional blorb) and update its web player |
 | `publish.sh` | Publish a project to GitHub Pages (creates repo on first run) |
 | `build-site.sh` | Assemble `_site/` from `web/` + version snapshots for deployment |
 | `snapshot.sh` | Freeze current source into a numbered version snapshot |
@@ -96,7 +99,7 @@ All scripts live in `tools/`. See [`tools/README.md`](tools/README.md) for full 
 |----------------|---------|
 | `setup-web.sh` | Bootstrap a Parchment web player for any project |
 | `play-template.html` | HTML template for player pages |
-| `parchment/` | Shared Parchment library files (7 required files) |
+| `parchment/` | Shared Parchment 2025.1 library files (12 files) |
 
 ## IF Hub Web Player (`ifhub/`)
 
@@ -107,6 +110,26 @@ A standalone static site that serves multiple games through a unified browser in
 | `deploy.sh` | Gather game assets from projects into `games/` |
 | `games.json` | Game registry (id, title, binary path, sound flag) |
 | `app.html` | Player UI with game selector and source viewer |
+
+## Sound (Native Blorb)
+
+Games with sound use native Glk/Blorb — audio is embedded directly in the `.gblorb` binary. Parchment 2025.1 plays sounds via AudioContext when the game issues Glk sound channel calls. No separate audio files or JS overlay needed.
+
+```bash
+# Compile with sound (full pipeline: I7 → I6 → ULX → blurb → gblorb → base64)
+bash tools/compile.sh zork1 --sound
+```
+
+**Requirements**: Sound declarations in `story.ni` (`Sound of X is the file "Y.ogg"`) and `.ogg` files in `projects/<name>/Sounds/`.
+
+**Known gotchas** (all guarded by `compile.sh`):
+- **No colons in story title** — Windows can't create files with `:`. Use `-` instead.
+- **Sounds/ must be at project root** — not inside `.materials/Sounds/`.
+- **play.html must load `parchment.js`** — not `main.js` (which has no sound support). `setup-web.sh` validates this.
+- **`story_name` required in parchment_options** — `parchment.js` crashes without it.
+- **Browser cache** — `setup-web.sh` and `deploy.sh` add `?v=<timestamp>` cache-busting.
+
+See `reference/sound.md` for the full architecture and troubleshooting guide.
 
 ## Compiler
 

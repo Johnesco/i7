@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Zork I (v3 — Current)</title>
+<title>Zork I (v3)</title>
 <meta name="viewport" content="width=device-width, user-scalable=no">
-<link rel="stylesheet" href="../../lib/parchment/parchment.css">
-<link rel="stylesheet" href="../../lib/parchment/main.css">
+<link rel="stylesheet" href="../../lib/parchment/parchment.css?v=1772510145">
+<link rel="stylesheet" href="../../lib/parchment/main.css?v=1772510145">
 
 <style>
 :root {
@@ -106,16 +106,22 @@ div#gameport {
 }
 </style>
 
-<script src="../../lib/parchment/jquery.min.js"></script>
+<script src="../../lib/parchment/jquery.min.js?v=1772510145"></script>
+<script src="../../lib/parchment/ie.js?v=1772510145" nomodule></script>
 <script>
+    // story_name is REQUIRED â€” parchment.js calls .substring() on it to detect
+    // the file type (.ulx.js, .gblorb.js, .z3.js). Without it you get:
+    //   TypeError: Cannot read properties of undefined (reading 'substring')
     parchment_options = {
-        default_story: ['zork1.ulx.js'],
+        default_story: ['zork1.gblorb.js'],
         lib_path: '../../lib/parchment/',
+        story_name: 'zork1.gblorb.js',
         use_proxy: 0,
         do_vm_autosave: 1,
     };
 </script>
-<script src="../../lib/parchment/main.js"></script>
+<script src="../../lib/parchment/parchment.js?v=1772510145"></script>
+<script src="../../lib/parchment/resourcemap.js?v=1772510145"></script>
 <script>
     window.addEventListener('pageshow', function(e) {
         if (e.persisted) { window.location.reload(); }
@@ -129,42 +135,20 @@ div#gameport {
   <div id="windowport">
     <noscript>
       <div style="text-align:center; padding:40px; color:#aa6644;">
-        <h2>Zork I (v3 — Current)</h2>
+        <h2>Zork I (v3)</h2>
         <p>JavaScript is required to play this game.</p>
       </div>
     </noscript>
   </div>
   <div id="loadingpane">
-    <div style="margin-bottom:20px; font-size:1.4em; color:#aa9966; letter-spacing:4px;">Zork I (v3 — Current)</div>
+    <div style="margin-bottom:20px; font-size:1.4em; color:#aa9966; letter-spacing:4px;">Zork I (v3)</div>
+    <img src="../../lib/parchment/waiting.gif" alt="Loading" style="opacity:0.5"><br>
     <em>Loading...</em>
   </div>
   <div id="errorpane" style="display:none;">
     <div id="errorcontent">...</div>
   </div>
 </div>
-
-<script>
-(function () {
-  window.SOUND_AUDIO_BASE = "./";
-  function loadScript(src) {
-    return new Promise(function (resolve, reject) {
-      var s = document.createElement("script");
-      s.src = src;
-      s.onload = resolve;
-      s.onerror = reject;
-      document.body.appendChild(s);
-    });
-  }
-  // ambient-audio.js is optional â€” may not exist for all games
-  loadScript("lib/ambient-audio.js").catch(function () {});
-
-  // sound-engine.js must load before sound-config.js calls SoundEngine.init()
-  loadScript("lib/sound-engine.js")
-    .then(function () { return loadScript("lib/sound-config.js"); })
-    .catch(function (e) { console.log("[sound] Failed to load:", e); });
-})();
-</script>
-
 
 </body>
 </html>

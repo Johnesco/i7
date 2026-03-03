@@ -26,16 +26,27 @@ Creates:
 Runs the full compilation pipeline and updates the web player.
 
 ```bash
-bash tools/compile.sh <game-name>
+bash tools/compile.sh <game-name>           # standard compile (ULX)
+bash tools/compile.sh <game-name> --sound   # with embedded blorb sound
 ```
 
-Steps:
+Steps (standard):
 1. Inform 7 → Inform 6 (via `inform7.exe`)
 2. Inform 6 → Glulx (via `inform6.exe`)
 3. Clean up intermediate `.i6` file
 4. Update web player (copies Parchment libs, base64-encodes `.ulx`)
 
-Output: `projects/<name>/<name>.ulx` and `projects/<name>/web/play.html`
+Additional steps with `--sound`:
+3. Generate `.blurb` manifest from sound declarations in `story.ni`
+4. Build `.gblorb` blorb with embedded audio (via `inblorb`)
+5. Clean up intermediates
+6. Update web player (base64-encodes `.gblorb` instead of `.ulx`)
+
+**Pre-flight checks** (run before expensive compilation):
+- Rejects titles with colons (`:`) — invalid filenames on Windows
+- Rejects `--sound` if `Sounds/` directory is missing at project root
+
+Output: `projects/<name>/<name>.ulx` (+ `.gblorb` with `--sound`) and `projects/<name>/web/play.html`
 
 ### `publish.sh` — Publish to GitHub Pages
 
@@ -197,33 +208,48 @@ Sets up a Parchment-based browser player for Inform 7 games.
 Creates a ready-to-serve web player directory with all required Parchment files and the base64-encoded game binary.
 
 ```bash
+# Standard (naked ULX binary, no sound)
 bash tools/web/setup-web.sh --title "My Game" --ulx path/to/game.ulx --out path/to/web
+
+# With embedded sound (gblorb binary)
+bash tools/web/setup-web.sh --title "My Game" --blorb path/to/game.gblorb --out path/to/web
 ```
 
 Creates:
 ```
 web/
-├── play.html              ← Browser-playable game page
+├── play.html                ← Browser-playable game page (cache-busted)
 └── lib/parchment/
-    ├── jquery.min.js      ← jQuery
-    ├── main.js            ← Parchment loader
-    ├── main.css           ← Layout styling
-    ├── parchment.js       ← Engine variant
-    ├── parchment.css      ← Engine styling
-    ├── quixe.js           ← Quixe interpreter (JS Glulx)
-    ├── glulxe.js          ← Glulxe interpreter (WASM)
-    └── game.ulx.js        ← Base64-encoded game binary
+    ├── jquery.min.js        ← jQuery
+    ├── parchment.js         ← Parchment engine (AudioContext sound support)
+    ├── parchment.css        ← Engine styling
+    ├── main.js              ← AsyncGlk standalone (NO sound — do not load this)
+    ├── main.css             ← Layout styling
+    ├── quixe.js             ← Quixe interpreter (JS Glulx)
+    ├── glulxe.js            ← Glulxe interpreter (WASM)
+    ├── bocfel.js            ← Z-machine interpreter
+    ├── zvm.js               ← ZVM interpreter
+    ├── ie.js                ← IE compatibility shim
+    ├── resourcemap.js       ← Blorb resource map (images/sound)
+    ├── waiting.gif          ← Loading animation
+    └── game.gblorb.js       ← Base64-encoded game binary
 ```
+
+**Post-generation validation**: Warns if the generated `play.html` loads `main.js` instead of `parchment.js` (which would silently disable sound).
+
+**Cache-busting**: All `.js` and `.css` references get `?v=<timestamp>` appended to prevent stale browser cache after rebuilds.
 
 Normally invoked by `compile.sh` rather than directly.
 
 ### `play-template.html`
 
-HTML template with `__TITLE__` and `__STORY_FILE__` placeholders, filled by `setup-web.sh`.
+HTML template with `__TITLE__` and `__STORY_FILE__` placeholders, filled by `setup-web.sh`. Must load `parchment.js` (not `main.js`) and must include `story_name` in `parchment_options`.
 
 ### `parchment/`
 
-The 7 shared Parchment library files. These are copied (not symlinked) to each project's `web/lib/parchment/` directory. All 7 files are required — missing engine files (`quixe.js`, `glulxe.js`) cause "Error loading engine: 404" at runtime.
+12 shared Parchment 2025.1 library files. Copied (not symlinked) to each project's `web/lib/parchment/` directory.
+
+**Critical distinction**: `parchment.js` has full sound support (AudioContext, Glk sound channels). `main.js` has only stub sound functions that throw errors. Always load `parchment.js` in play pages.
 
 ---
 

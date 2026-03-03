@@ -167,6 +167,10 @@ fetch('games.json')
         versions = `<div class="game-links" style="margin-top:8px; font-size:0.88em;">${links}</div>`;
       }
 
+      const siteLink = c.siteUrl
+        ? `<a href="${c.siteUrl}">Project site</a>`
+        : '';
+
       container.insertAdjacentHTML('beforeend',
         `<div class="game-card">
           <h3>${c.title}</h3>
@@ -175,6 +179,7 @@ fetch('games.json')
           <div class="game-links">
             <a href="games/${g.id}/">${playLabel}</a>
             <a href="app.html?game=${g.id}">Play in IF Hub</a>
+            ${siteLink}
           </div>
           ${versions}
         </div>`
@@ -213,6 +218,7 @@ fetch('games.json')
   <p>
     Built with <a href="http://inform7.com/">Inform 7</a>.
     Playable via <a href="https://github.com/curiousdannii/parchment">Parchment</a>.
+    <a href="guide.html">How it works</a>.
   </p>
 </footer>
 

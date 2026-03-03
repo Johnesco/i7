@@ -28,7 +28,29 @@
       "Bash(git reset:*)",
       "Bash(sha256sum:*)",
       "Bash(git init:*)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(sed:*)",
+      "Bash(git subtree:*)",
+      "Bash(mv ifhub:*)",
+      "Bash(gh api:*)",
+      "Bash(gh run:*)",
+      "Bash(gh workflow:*)",
+      "WebFetch(domain:johnesco.github.io)",
+      "Bash(git remote:*)",
+      "Bash(xargs:*)",
+      "Bash(cmd.exe:*)",
+      "WebFetch(domain:intfiction.org)",
+      "WebFetch(domain:vorple-if.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:www.ifwiki.org)",
+      "WebFetch(domain:zmpp.sourceforge.net)",
+      "WebFetch(domain:bigsoundbank.com)",
+      "Bash(curl:*)",
+      "Bash(wsl:*)",
+      "Bash(MSYS_NO_PATHCONV=1 wsl:*)"
     ]
   }
 }

@@ -128,6 +128,16 @@ The `.ulx.js` format is a JSONP callback — single quotes, no semicolons:
 processBase64Zcode('BASE64_ENCODED_BINARY')
 ```
 
+**Critical: the file must be exactly 1 line.** Any newline inside the JS string literal causes "Error loading story 200" — the file loads (HTTP 200) but the JS is broken and `processBase64Zcode` never fires. The one-shot `B64=$(...)` approach above is safe because command substitution strips trailing newlines. If building the file in multiple steps, use `printf` (not `echo`, which adds trailing newlines) and pipe base64 through `tr -d '\n\r'`:
+
+```bash
+printf "processBase64Zcode('" > game.ulx.js
+base64 -w 0 game.ulx | tr -d '\n\r' >> game.ulx.js
+printf "')\n" >> game.ulx.js
+```
+
+Verify with `wc -l game.ulx.js` — must report **1**.
+
 ## Step 4: Test Locally
 
 ```bash
@@ -138,6 +148,8 @@ python -m http.server 8000 --directory projects/<game>/web
 Do NOT open `play.html` as a `file://` URL — browsers block the JSONP script loading due to CORS.
 
 ## Step 5: Add Sound (Optional)
+
+> **Note (March 2026)**: All sound games now use **native Glk/blorb sound** instead of the JS overlay described below. Compile with `bash tools/compile.sh <game> --sound` to embed `.ogg` audio in a `.gblorb` binary. The overlay system has been archived to `reference/sound-overlay/`. The instructions below are retained for historical reference only.
 
 Sound uses a JavaScript overlay that watches the game's DOM output. Two trigger modes:
 

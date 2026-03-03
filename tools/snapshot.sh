@@ -127,7 +127,7 @@ else
 
         # Copy lib/ (except the binary we already created)
         if [[ -d "$PREV_VERSION/lib" ]]; then
-            # Copy non-parchment lib files (e.g., ambient-audio.js)
+            # Copy non-parchment lib files (if any)
             for f in "$PREV_VERSION"/lib/*; do
                 fname="$(basename "$f")"
                 if [[ "$fname" != "parchment" ]]; then

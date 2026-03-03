@@ -29,17 +29,28 @@
   },
   {
     "id": "zork1-v3",
-    "title": "Zork I (v3 \u2014 Current)",
+    "title": "Zork I (v3)",
     "sourceLabel": "zork1-v3.ni",
     "source": "games/zork1-v3/story.ni",
-    "binary": "games/zork1-v3/zork1.ulx.js",
+    "binary": "games/zork1-v3/zork1.gblorb.js",
     "walkthrough": "games/zork1-v3/walkthrough.html",
-    "sound": true,
+    "sound": "blorb",
+    "versionLabel": "v3 \u2014 Sound"
+  },
+  {
+    "id": "zork1-v4",
+    "title": "Zork I (v4 \u2014 Current)",
+    "sourceLabel": "zork1-v4.ni",
+    "source": "games/zork1-v4/story.ni",
+    "binary": "games/zork1-v4/zork1.gblorb.js",
+    "walkthrough": "games/zork1-v4/walkthrough.html",
+    "sound": "blorb",
     "card": {
-      "title": "Zork I: The Great Underground Empire",
+      "title": "Zork I - The Great Underground Empire",
       "meta": "Infocom (translated to Inform 7)",
       "description": "A full translation of Infocom\u2019s classic adventure game from the original <a href=\"https://github.com/historicalsource/zork1\">ZIL source code</a> to Inform 7. 110 rooms, 19 treasures, a roaming thief, and every puzzle faithfully reproduced. Multiple versioned milestones track the evolution from raw translation to bug-fixed, audio-enhanced experience.",
-      "versions": ["zork1-v0", "zork1-v1", "zork1-v2"]
+      "versions": ["zork1-v0", "zork1-v1", "zork1-v2", "zork1-v3"],
+      "siteUrl": "https://johnesco.github.io/zork1/"
     }
   },
   {
@@ -59,9 +70,9 @@
     "title": "Fever Dream",
     "sourceLabel": "feverdream.ni",
     "source": "games/feverdream/story.ni",
-    "binary": "games/feverdream/feverdream.ulx.js",
+    "binary": "games/feverdream/feverdream.gblorb.js",
     "walkthrough": "games/feverdream/walkthrough.html",
-    "sound": true,
+    "sound": "blorb",
     "card": {
       "title": "Fever Dream",
       "meta": "A Perceptual Horror",

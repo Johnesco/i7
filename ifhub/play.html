@@ -115,15 +115,20 @@ div#gameport {
     document.title = gameTitle;
 
     if (binaryPath) {
+        // story_name is REQUIRED — parchment.js calls .substring() on it to detect
+        // the file type (.ulx.js, .gblorb.js, .z3.js). Without it you get:
+        //   TypeError: Cannot read properties of undefined (reading 'substring')
         parchment_options = {
             default_story: [binaryPath],
             lib_path: 'lib/parchment/',
+            story_name: binaryPath.split('/').pop(),
             use_proxy: 0,
             do_vm_autosave: 1,
         };
     }
 </script>
-<script src="lib/parchment/main.js"></script>
+<script src="lib/parchment/parchment.js"></script>
+<script src="lib/parchment/resourcemap.js"></script>
 <script>
     window.addEventListener('pageshow', function(e) {
         if (e.persisted) { window.location.reload(); }
@@ -155,54 +160,6 @@ div#gameport {
   document.getElementById('loading-title').textContent = gameTitle;
 </script>
 
-<script>
-(function () {
-  var params = new URLSearchParams(window.location.search);
-  var soundBase = params.get('soundBase');
-  if (!soundBase) return;
-
-  // Set base path for sound scripts (trailing slash ensures correct relative paths)
-  window.SOUND_AUDIO_BASE = soundBase + '/';
-
-  function loadScript(src) {
-    return new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = src;
-      s.onload = resolve;
-      s.onerror = reject;
-      document.body.appendChild(s);
-    });
-  }
-
-  // Load ambient-audio.js (optional — may not exist for all games)
-  loadScript(soundBase + '/lib/ambient-audio.js').catch(function () {});
-
-  // Load sound-engine.js then sound-config.js (engine must load before config calls init)
-  loadScript(soundBase + '/lib/sound-engine.js')
-    .then(function () { return loadScript(soundBase + '/lib/sound-config.js'); })
-    .then(function () {
-      // Notify parent that sound is ready
-      if (window.parent !== window) {
-        window.parent.postMessage({ type: 'ifhub:soundReady' }, '*');
-      }
-    })
-    .catch(function (e) {
-      console.log('[sound] Failed to load sound scripts:', e);
-    });
-
-  // Listen for parent commands
-  window.addEventListener('message', function (e) {
-    if (!e.data || !e.data.type) return;
-    if (e.data.type === 'ifhub:setMute') {
-      if (window.ifhubAmbient) window.ifhubAmbient.setMuted(e.data.muted);
-      if (window.ifhubSfx) window.ifhubSfx.setMuted(e.data.muted);
-    } else if (e.data.type === 'ifhub:setVolume') {
-      if (window.ifhubAmbient) window.ifhubAmbient.setMasterVolume(e.data.volume);
-      if (window.ifhubSfx) window.ifhubSfx.setMasterVolume(e.data.volume);
-    }
-  });
-})();
-</script>
 
 </body>
 </html>

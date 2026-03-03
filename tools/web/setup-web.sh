@@ -8,12 +8,15 @@
 #   bash /c/code/ifhub/tools/web/setup-web.sh \
 #       --title "My Game" \
 #       --ulx /path/to/game.ulx \
-#       --out /path/to/project/web \
-#       [--sound]
+#       --out /path/to/project/web
 #
-# The --sound flag copies the shared sound-engine.js into lib/.
-# You still need to create a game-specific lib/sound-config.js and
-# add the two <script> tags to play.html (or your template).
+#   bash /c/code/ifhub/tools/web/setup-web.sh \
+#       --title "My Game" \
+#       --blorb /path/to/game.gblorb \
+#       --out /path/to/project/web
+#
+# --ulx:   Encode a naked .ulx binary (no embedded resources)
+# --blorb: Encode a .gblorb blorb file (with embedded sounds/images)
 #
 # After setup, serve locally with:
 #   python -m http.server 8000 --directory /path/to/project/web
@@ -30,36 +33,67 @@ TEMPLATE="$SCRIPT_DIR/play-template.html"
 
 TITLE=""
 ULX_PATH=""
+BLORB_PATH=""
 OUT_DIR=""
-SOUND=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --title)  TITLE="$2"; shift 2 ;;
         --ulx)    ULX_PATH="$2"; shift 2 ;;
+        --blorb)  BLORB_PATH="$2"; shift 2 ;;
         --out)    OUT_DIR="$2"; shift 2 ;;
-        --sound)  SOUND=true; shift ;;
         *)        echo "Unknown option: $1" >&2; exit 1 ;;
     esac
 done
 
-if [[ -z "$TITLE" || -z "$ULX_PATH" || -z "$OUT_DIR" ]]; then
-    echo "Usage: setup-web.sh --title \"Game Title\" --ulx path/to/game.ulx --out path/to/web [--sound]" >&2
+if [[ -z "$TITLE" || -z "$OUT_DIR" ]]; then
+    echo "Usage: setup-web.sh --title \"Game Title\" --ulx path/to/game.ulx --out path/to/web" >&2
+    echo "   or: setup-web.sh --title \"Game Title\" --blorb path/to/game.gblorb --out path/to/web" >&2
     exit 1
 fi
 
-if [[ ! -f "$ULX_PATH" ]]; then
-    echo "Error: ULX file not found: $ULX_PATH" >&2
+if [[ -n "$BLORB_PATH" && -n "$ULX_PATH" ]]; then
+    echo "Error: specify --ulx or --blorb, not both" >&2
     exit 1
 fi
 
-ULX_BASENAME="$(basename "$ULX_PATH")"
-STORY_JS="${ULX_BASENAME}.js"
+if [[ -z "$BLORB_PATH" && -z "$ULX_PATH" ]]; then
+    echo "Error: specify --ulx or --blorb" >&2
+    exit 1
+fi
+
+# Determine which binary to encode
+if [[ -n "$BLORB_PATH" ]]; then
+    if [[ ! -f "$BLORB_PATH" ]]; then
+        echo "Error: Blorb file not found: $BLORB_PATH" >&2
+        exit 1
+    fi
+    GAME_PATH="$BLORB_PATH"
+    GAME_BASENAME="$(basename "$BLORB_PATH")"
+else
+    if [[ ! -f "$ULX_PATH" ]]; then
+        echo "Error: ULX file not found: $ULX_PATH" >&2
+        exit 1
+    fi
+    GAME_PATH="$ULX_PATH"
+    GAME_BASENAME="$(basename "$ULX_PATH")"
+fi
+
+STORY_JS="${GAME_BASENAME}.js"
 
 # Create output directories
 mkdir -p "$OUT_DIR/lib/parchment"
 
-# Copy Parchment libraries (all 7 required files)
+# Copy Parchment libraries (Parchment 2025.1)
+#
+# IMPORTANT: parchment.js vs main.js
+#   parchment.js — Full Parchment engine with AudioContext sound channel support.
+#                  play.html MUST load this file for blorb sound to work.
+#   main.js      — AsyncGlk standalone build with STUB sound functions (throws on
+#                  schannel calls, hardcodes gestalt_Sound=0). Loading this instead
+#                  of parchment.js silently disables all Glk sound — the game prints
+#                  "[Sound effect number N here.]" text fallback instead of playing audio.
+#
 echo "Copying Parchment libraries..."
 cp "$PARCHMENT_SRC/jquery.min.js" \
    "$PARCHMENT_SRC/main.js" \
@@ -68,28 +102,49 @@ cp "$PARCHMENT_SRC/jquery.min.js" \
    "$PARCHMENT_SRC/parchment.css" \
    "$PARCHMENT_SRC/quixe.js" \
    "$PARCHMENT_SRC/glulxe.js" \
+   "$PARCHMENT_SRC/ie.js" \
+   "$PARCHMENT_SRC/bocfel.js" \
+   "$PARCHMENT_SRC/resourcemap.js" \
+   "$PARCHMENT_SRC/zvm.js" \
+   "$PARCHMENT_SRC/waiting.gif" \
    "$OUT_DIR/lib/parchment/"
 
 # Base64-encode the game binary
-echo "Encoding $ULX_BASENAME → $STORY_JS..."
-B64=$(base64 -w 0 "$ULX_PATH")
+echo "Encoding $GAME_BASENAME → $STORY_JS..."
+B64=$(base64 -w 0 "$GAME_PATH")
 echo "processBase64Zcode('${B64}')" > "$OUT_DIR/lib/parchment/$STORY_JS"
 
 # Generate play.html from template
+# Cache-busting: append ?v=<timestamp> to .js and .css src/href so browsers
+# don't serve stale scripts after a rebuild. Without this, switching from
+# main.js to parchment.js (or updating any library) can appear to have no
+# effect until the user manually clears their cache.
+CACHE_BUST="v=$(date +%s)"
 echo "Generating play.html..."
 sed -e "s/__TITLE__/$TITLE/g" \
     -e "s/__STORY_FILE__/$STORY_JS/g" \
+    -e "s/\.js\"/\.js?$CACHE_BUST\"/g" \
+    -e "s/\.css\"/\.css?$CACHE_BUST\"/g" \
     "$TEMPLATE" > "$OUT_DIR/play.html"
 
-# Optionally copy sound engine
-if [[ "$SOUND" == true ]]; then
-    echo "Copying sound engine..."
-    cp "$SCRIPT_DIR/sound-engine.js" "$OUT_DIR/lib/"
-    echo "  → lib/sound-engine.js"
-    echo "  NOTE: Create lib/sound-config.js with your game's triggers."
-    echo "  Add to play.html before </body>:"
-    echo '    <script src="lib/sound-engine.js"></script>'
-    echo '    <script src="lib/sound-config.js"></script>'
+# Validate: play.html must load parchment.js (not main.js) for sound to work.
+# See the comment above about the difference between the two files.
+# Patterns account for cache-busting query params (e.g. main.js?v=12345).
+if grep -qE 'src="[^"]*main\.js(\?[^"]*)?"' "$OUT_DIR/play.html" && \
+   ! grep -qE 'src="[^"]*parchment\.js(\?[^"]*)?"' "$OUT_DIR/play.html"; then
+    echo "WARNING: play.html loads main.js instead of parchment.js!" >&2
+    echo "  Blorb sound will NOT work. Fix the template at:" >&2
+    echo "  $TEMPLATE" >&2
+    echo "  Change: main.js → parchment.js" >&2
+fi
+
+# Validate: parchment_options must include story_name — parchment.js calls
+# .substring() on it and crashes with "TypeError: Cannot read properties of
+# undefined (reading 'substring')" if it's missing.
+if ! grep -q 'story_name' "$OUT_DIR/play.html"; then
+    echo "WARNING: play.html is missing story_name in parchment_options!" >&2
+    echo "  parchment.js will crash. Fix the template at:" >&2
+    echo "  $TEMPLATE" >&2
 fi
 
 echo ""
@@ -100,4 +155,4 @@ echo "  python -m http.server 8000 --directory \"$OUT_DIR\""
 echo "  # then open http://localhost:8000/play.html"
 echo ""
 echo "To update after recompiling:"
-echo "  B64=\$(base64 -w 0 \"$ULX_PATH\") && echo \"processBase64Zcode('\${B64}')\" > \"$OUT_DIR/lib/parchment/$STORY_JS\""
+echo "  B64=\$(base64 -w 0 \"$GAME_PATH\") && echo \"processBase64Zcode('\${B64}')\" > \"$OUT_DIR/lib/parchment/$STORY_JS\""

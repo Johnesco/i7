@@ -1,9 +1,6 @@
 "Fever Dream" by Anonymous
 
-Include Glulx Text Effects by Emily Short.
-
-To issue sound command (T - text):
-	say "[first custom style][T][roman type]".
+Sound of glass-sfx is the file "glass.ogg".
 
 The story headline is "A Perceptual Horror".
 The story genre is "Horror".
@@ -171,7 +168,7 @@ The glass case is scenery in the Laboratory. The glass case is perception-hidden
 
 Instead of attacking the glass case:
 	if the player carries the pipe wrench:
-		issue sound command "SFX:glass";
+		play the sound of glass-sfx;
 		say "You swing the wrench. The glass shatters cleanly. The brass key drops into your hand.";
 		now the brass key is carried by the player;
 		now the glass case is shattered;

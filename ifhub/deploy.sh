@@ -17,11 +17,12 @@ I7_ROOT="$(cd .. && pwd)"
 GAMES=(
   "sample      projects/sample/story.ni                           projects/sample/web/lib/parchment/sample.ulx.js"
   "dracula     projects/dracula/story.ni                          projects/dracula/web/lib/parchment/dracula.ulx.js"
-  "feverdream  projects/feverdream/story.ni                       projects/feverdream/web/lib/parchment/feverdream.ulx.js"
+  "feverdream  projects/feverdream/story.ni                       projects/feverdream/web/lib/parchment/feverdream.gblorb.js"
   "zork1-v0    none                                               projects/zork1/versions/v0/zork1.z3.js"
   "zork1-v1    projects/zork1/versions/v1/story.ni                projects/zork1/versions/v1/lib/parchment/zork1.ulx.js"
   "zork1-v2    projects/zork1/versions/v2/story.ni                projects/zork1/versions/v2/lib/parchment/zork1.ulx.js"
-  "zork1-v3    projects/zork1/versions/v3/story.ni                projects/zork1/versions/v3/lib/parchment/zork1.ulx.js"
+  "zork1-v3    projects/zork1/versions/v3/story.ni                projects/zork1/versions/v3/lib/parchment/zork1.gblorb.js"
+  "zork1-v4    projects/zork1/versions/v4/story.ni                projects/zork1/versions/v4/lib/parchment/zork1.gblorb.js"
 )
 
 # Walkthrough definitions: local-id  walkthrough-dir
@@ -34,18 +35,11 @@ WALKTHROUGH_DIRS=(
   [zork1-v1]="projects/zork1/versions/v1"
   [zork1-v2]="projects/zork1/versions/v2"
   [zork1-v3]="projects/zork1/versions/v3"
+  [zork1-v4]="projects/zork1/versions/v4"
   [feverdream]="projects/feverdream/tests"
 )
 
 WALKTHROUGH_FILES=(walkthrough.html walkthrough.txt walkthrough-guide.txt walkthrough_output.txt)
-
-# Sound asset definitions: local-id  sound-dir (relative to $I7_ROOT)
-#   Copies lib/ambient-audio.js, lib/sound-engine.js, lib/sound-config.js, and audio/ directory
-declare -A SOUND_DIRS
-SOUND_DIRS=(
-  [zork1-v3]="projects/zork1/web"
-  [feverdream]="projects/feverdream/web"
-)
 
 for entry in "${GAMES[@]}"; do
   read -r id src bin <<< "$entry"
@@ -81,25 +75,6 @@ for entry in "${GAMES[@]}"; do
     done
   fi
 
-  # Copy sound assets if defined for this game
-  if [[ -n "${SOUND_DIRS[$id]+x}" ]]; then
-    snddir="$I7_ROOT/${SOUND_DIRS[$id]}"
-    mkdir -p "$dest/lib"
-    for sf in ambient-audio.js sound-engine.js sound-config.js; do
-      if [[ -f "$snddir/lib/$sf" ]]; then
-        cp "$snddir/lib/$sf" "$dest/lib/$sf"
-        echo "  $id: lib/$sf copied"
-      else
-        echo "  $id: WARNING — lib/$sf not found in ${SOUND_DIRS[$id]}"
-      fi
-    done
-    if [[ -d "$snddir/audio" ]]; then
-      cp -r "$snddir/audio" "$dest/audio"
-      echo "  $id: audio/ copied"
-    else
-      echo "  $id: WARNING — audio/ not found in ${SOUND_DIRS[$id]}"
-    fi
-  fi
 done
 
 # Copy v0 ZIL source browser (standalone HTML that fetches from GitHub)
@@ -114,7 +89,7 @@ echo ""
 echo "Generating standalone play pages..."
 
 python3 -c "
-import json
+import json, time, re, os
 
 with open('games.json') as f:
     games = json.load(f)
@@ -122,23 +97,23 @@ with open('games.json') as f:
 with open('play-template.html') as f:
     template = f.read()
 
-with open('sound-standalone.html') as f:
-    sound_block = f.read()
+# Cache-busting: append ?v=<timestamp> to .js and .css references so browsers
+# don't serve stale scripts after a rebuild (e.g. after switching parchment.js).
+cache_bust = 'v=' + str(int(time.time()))
 
 for g in games:
     gid = g['id']
     dest = 'games/' + gid
-    import os
     if not os.path.isdir(dest):
         continue
 
     title = g['title']
     binary = g['binary'].split('/')[-1]
-    sound = sound_block if g.get('sound') else ''
 
     page = template.replace('__TITLE__', title)
     page = page.replace('__BINARY__', binary)
-    page = page.replace('__SOUND_SCRIPTS__', sound)
+    page = re.sub(r'\.js\"', '.js?' + cache_bust + '\"', page)
+    page = re.sub(r'\.css\"', '.css?' + cache_bust + '\"', page)
 
     with open(dest + '/index.html', 'w') as f:
         f.write(page)

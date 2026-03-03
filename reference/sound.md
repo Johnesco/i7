@@ -1,16 +1,16 @@
 # Sound in Inform 7 Web Games
 
-Research into browser-based sound for Inform 7 games: what exists, what works, and why we use a custom JavaScript overlay. Includes the full architecture reference and editing guide for the shared sound engine.
+Research into browser-based sound for Inform 7 games. All IF Hub sound games now use **native Glk/blorb sound** via Parchment 2025.1. The previous JavaScript overlay system (sound-engine.js, ambient-audio.js, sound-config.js) has been archived to `reference/sound-overlay/` — see its README for what it was and why it was replaced. This document retains the full technical reference for both approaches.
 
 ## Context
 
-IF Hub games use a custom JavaScript overlay for sound — a shared engine (`sound-engine.js`) plus per-game config (`sound-config.js`) that sit outside the interpreter, watch the DOM via MutationObserver, and play HTML5 Audio. An optional `ambient-audio.js` handles room-based background music. This document records the evaluation of existing open-source alternatives and documents the current architecture.
+IF Hub games originally used a custom JavaScript overlay for sound — a shared engine plus per-game config that sat outside the interpreter, watched the DOM via MutationObserver, and played HTML5 Audio. As of March 2026, all sound games have been converted to native blorb and the overlay code has been removed from active use (archived at `reference/sound-overlay/`).
 
-**Date**: February 2026
+**Date**: February 2026 (overlay evaluation), March 2026 (native blorb migration, overlay archived)
 
 ## The Landscape: What Exists
 
-### 1. Parchment (curiousdannii) — The Closest Contender
+### 1. Parchment (curiousdannii) — Native Blorb Sound Works
 
 **Repo**: github.com/curiousdannii/parchment (MIT license)
 
@@ -19,13 +19,15 @@ The Jan 2025 release (2025.1.14) was a major architectural overhaul:
 - Uses **RemGlk-rs** (Rust port of RemGlk) as the Glk layer
 - Uses **AsyncGlk** (TypeScript Glk library) for the browser-side UI
 
-**Sound status**: The Emglken 0.7 release notes mention "sound support!" and AsyncGlk has a `glkaudio` Rust module (a Symphonia-based audio decoder compiled to WASM). However:
-- The Parchment developer (Dannii) explicitly said on intfiction.org: **"Not yet, RemGlk-rs and GlkOte don't support sound yet. But I am intending to add it soon!"**
-- The Inform 7 template for Parchment has **not** been updated with sound support
-- The `glkaudio` module is just a **decoder** (compressed audio to WAV), not a complete Glk sound channel implementation
-- No one has confirmed sound actually working end-to-end in the browser
+**Sound status (updated March 2026)**: The browser-side sound plumbing **is functional**. Parchment 2025.1 can play sounds natively when the game binary is a `.gblorb` (Glulx blorb) with embedded audio resources. The AudioContext-based playback, Blorb parser, and sound channel management all work end-to-end in the browser.
 
-**Assessment**: The pieces are being assembled (decoder exists, interpreter supports sound opcodes, architecture is there) but the **browser-side playback plumbing is not connected yet**. Most promising project but not usable today.
+**However**, two upstream bugs in the Inform 7 toolchain prevent this from working out of the box:
+1. **Colon in title bug**: `Release.blurb` generates a `storyfile leafname` containing colons from the game title, producing an invalid filename on Windows (e.g., `"Zork I - The Great Underground E.gblorb"`)
+2. **ULX-instead-of-gblorb bug**: The `base64` line in `Release.blurb` encodes `output.ulx` (the naked binary without sounds) instead of `output.gblorb` (the full blorb with embedded audio), so the web player gets a game file with no sound resources
+
+**Workaround**: Generate the `.blurb` file manually with `generate-blurb.sh`, run `inblorb` to create the `.gblorb`, then base64-encode the `.gblorb` instead of the `.ulx`. This is automated via `compile.sh --sound`.
+
+**Assessment**: **Native blorb sound works today** with the CLI workaround. When the upstream bugs are fixed, the standard IDE Release pipeline will produce correct blorb-encoded web players automatically.
 
 ### 2. Quixe (erkyrath) — Stalled
 
@@ -78,28 +80,119 @@ The Jan 2025 release (2025.1.14) was a major architectural overhaul:
 
 | System | Sound Works? | Open Source? | CLI Compatible? | Our Pipeline? | Active? |
 |--------|-------------|-------------|----------------|--------------|---------|
-| **Parchment (new)** | Not yet | MIT | Yes | Yes | Active |
+| **Parchment 2025.1 (native blorb)** | Yes (with workaround) | MIT | Yes | Yes | Active |
 | **Quixe** | No (PRs stalled 10yr) | MIT | Yes | Yes | Stalled |
 | **Bisquixe** | Yes | Unknown | No (IDE-only) | No | Unclear |
 | **Vorple** | Yes | MIT | No (IDE "Release") | No | Active |
 | **Our custom overlay** | Yes | N/A | Yes | Yes | Ours |
 
-## Decision
+## Decision (Updated March 2026)
 
-**No existing open-source project is close enough to adopt.** The closest is Parchment's new architecture, which has the decoder and interpreter pieces but the browser playback layer isn't wired up yet. The developer intends to add it "soon" but there's no timeline.
+**All sound games now use native Glk/Blorb sound.** As of March 2026, zork1 (v3, v4) and feverdream have been converted from the JS overlay to native blorb. The JS overlay infrastructure is retained for potential future use — set `"sound": "overlay"` in `games.json` to activate it for a new game.
 
-The projects that actually work today (Bisquixe, Vorple) both require the Inform IDE's "Release" workflow and would mean abandoning our CLI compilation pipeline, Parchment setup, and JSONP binary loading.
+**Two sound approaches are available**, both integrated into our pipeline:
 
-**Continue with the custom JavaScript overlay approach.** It's the only solution that:
-- Works today
-- Is compatible with our CLI pipeline
-- Works with any interpreter (Parchment, Quixe, Glulxe)
-- Doesn't couple sound to `story.ni`
-- Is under our control
+### 1. Native Blorb Sound (Parchment 2025.1)
 
-When Parchment eventually ships native sound support, we can evaluate migrating — but that's a future opportunity, not a current option.
+Parchment's built-in sound works when the game binary is a `.gblorb` with embedded audio. The game's `story.ni` declares sounds via standard Inform 7 syntax (`Sound of X is the file "Y.ogg"`), and the interpreter handles playback via AudioContext.
 
-## Our Sound Architecture
+**Use when**: The game has Inform 7 sound declarations and you want embedded audio with no external JS dependencies.
+
+**CLI command**: `bash tools/compile.sh zork1 --sound`
+
+**Tradeoffs**:
+- Larger file size (~25MB for zork1 with 25 sounds vs ~1.3MB without)
+- Requires `.ogg` sound files in `project/Sounds/`
+- Sound timing is controlled by the game engine (Glk sound channels)
+- Workaround needed for two upstream Inform 7 bugs (automated by `generate-blurb.sh`)
+
+### 2. Custom JavaScript Overlay (sound-engine.js)
+
+Our MutationObserver-based approach watches the DOM and plays HTML5 Audio independently of the interpreter.
+
+**Use when**: No source changes needed, hot-swappable triggers, fine-grained control over timing/volume/zones, or the game doesn't have Inform 7 sound declarations.
+
+**CLI command**: `bash tools/compile.sh zork1` (then add sound-config.js manually)
+
+**Tradeoffs**:
+- Requires per-game JavaScript configuration
+- Text-matching triggers can misfire on similar text
+- Sound files served separately (not embedded in game binary)
+
+### When to use which
+
+**Native blorb is the default** for all sound games. Use the JS overlay only when you need hot-swappable text-matching triggers or standalone ambient crossfading without game source changes.
+
+| Criterion | Native Blorb | JS Overlay |
+|---|---|---|
+| Sound declarations in story.ni | Required | Not needed |
+| File format | .ogg (embedded in .gblorb) | .mp3 (separate files) |
+| Total file size | Larger (~25MB) | Smaller (~1.3MB + audio) |
+| Trigger precision | Engine-controlled | Regex or Style_user1 |
+| Hot-swappable without recompile | No | Yes (text triggers) |
+| Zone-based ambient crossfading | Built in (Glk channels) | Yes (ambient-audio.js) |
+| Works offline (single file) | Yes (all embedded) | No (needs audio files) |
+| games.json sound value | `"blorb"` | `"overlay"` |
+| deploy.sh SOUND_DIRS needed | No | Yes |
+
+Both approaches can coexist in the same project. The JS overlay will work regardless of whether the game binary is `.ulx` or `.gblorb`.
+
+### Future
+
+When the two upstream Inform 7 bugs are fixed:
+1. The colon-in-title filename bug
+2. The ULX-encoded-instead-of-gblorb bug
+
+...the manual `generate-blurb.sh` + `inblorb` steps become unnecessary. The standard IDE Release pipeline will encode the `.gblorb` automatically, and `compile.sh --sound` can be simplified to just pass the IDE-generated blorb to `setup-web.sh`.
+
+## Native Blorb Sound Architecture
+
+### How It Works
+
+1. **story.ni** declares sounds: `Sound of forest-ambient is the file "forest.ogg".`
+2. **inform7** compiles the declarations into Glk sound opcodes in the game binary
+3. **generate-blurb.sh** parses story.ni, assigns resource IDs (starting from 3), generates a `.blurb` file
+4. **inblorb** packages the `.ulx` game binary + `.ogg` sound files into a single `.gblorb` blorb file
+5. **setup-web.sh --blorb** base64-encodes the `.gblorb` into a `.gblorb.js` file
+6. **Parchment 2025.1** loads the blorb, parses the resource map, and plays sounds via AudioContext when the game issues Glk sound channel calls
+
+### Upstream Bugs (Inform 7 v10.1.2)
+
+**Bug 1: Colon in title produces invalid filename**
+
+The `Release.blurb` file uses `storyfile leafname` with the game title, which may contain colons. On Windows, colons are illegal in filenames. Example: `"Zork I - The Great Underground E.gblorb"` causes the release to fail.
+
+**Workaround**: Use `generate-blurb.sh` which generates a sanitized blurb without the leafname directive.
+
+**Bug 2: ULX encoded instead of gblorb**
+
+The `base64` line in `Release.blurb` encodes `output.ulx` (the naked game binary) instead of `output.gblorb` (the full blorb with embedded sounds). The resulting `.gblorb.js` file contains only the game code with no sound resources.
+
+```
+# What Release.blurb generates (BROKEN):
+base64 "zork1.inform\Build\output.ulx" to "...\Zork I - The Great Underground E.gblorb.js"
+
+# What it should generate:
+base64 "zork1.inform\Build\output.gblorb" to "...\zork1.gblorb.js"
+```
+
+**Workaround**: `compile.sh --sound` runs `generate-blurb.sh` + `inblorb` + `setup-web.sh --blorb` to produce a correct blorb-encoded web player.
+
+### Resource ID Mapping
+
+Sound resource IDs are assigned by the Inform 7 compiler based on declaration order in `story.ni`. IDs 1 and 2 are reserved (cover image and small cover). Sound IDs start at 3.
+
+The `generate-blurb.sh` script parses declarations in source order to match the compiler's assignment. This has been validated against the IDE-generated `Release.blurb` — the IDs match exactly.
+
+### File Size Impact
+
+Blorb-encoded games are significantly larger because all sound files are embedded:
+
+| Game | .ulx | .gblorb | .gblorb.js (base64) |
+|---|---|---|---|
+| zork1 (25 sounds) | ~1.3 MB | ~23 MB | ~31 MB |
+
+## Our Sound Architecture (JS Overlay)
 
 The custom overlay consists of independent JavaScript modules that observe the DOM and play HTML5 Audio. The shared sound engine lives at `tools/web/sound-engine.js` and is copied into each project. Each game provides its own `sound-config.js` with trigger definitions.
 
@@ -222,7 +315,7 @@ The overlay approach observes Parchment's DOM output rather than hooking into th
    - CSS: `.Style_user1 { display: none; }` (in `<style>` block)
    - Scripts: `<script src="lib/sound-engine.js"></script>` and `<script src="lib/sound-config.js"></script>` before `</body>`
 5. If using Style_user1 triggers: add `Include Glulx Text Effects by Emily Short` and the `issue sound command` phrase to `story.ni`
-6. For ifhub deployment: set `"sound": true` in `games.json` and add the project to `SOUND_DIRS` in `deploy.sh`
+6. For ifhub deployment: set `"sound": "overlay"` in `games.json` and add the project to `SOUND_DIRS` in `deploy.sh`
 
 ### File Locations
 
@@ -277,7 +370,7 @@ The incompatible interpreters all use their own display libraries with different
 
 Glk defines two custom text styles (`user1`, `user2`) reserved for application use. Both GlkOte and AsyncGlk render them as `<span class="Style_user1">`. This enables **explicit sound commands from game logic** — invisible to the player, detectable by the overlay.
 
-**Status**: Implemented and deployed. Fever Dream uses Style_user1 for precise triggers. Zork1 v3 uses text-matching only. Both approaches coexist in the shared sound engine.
+**Status**: Infrastructure available but no games currently use it. Fever Dream was converted to native blorb sound in March 2026 (previously used Style_user1). Zork1 was converted from text-matching overlay to native blorb. Both trigger modes remain functional in the shared sound engine for future use.
 
 ### How It Works
 
@@ -331,6 +424,87 @@ Use text matching as the default — it's simpler and doesn't require source cha
 Style_user1 has the **same compatibility as the overlay itself** — it's just another CSS class from the same GlkOte/AsyncGlk code path. Every interpreter in the "Yes" column above will render `.Style_user1`.
 
 In non-browser interpreters (terminal), the player would see the raw command text. Guard with a conditional if needed, or accept it as a browser-only feature.
+
+## Troubleshooting: Sound Not Playing
+
+If you see `[Sound effect number N here.]` text instead of hearing audio, work through this checklist in order:
+
+### 1. Wrong JS entry point (most common)
+
+**Symptom**: Game loads and runs fine, but prints `[Sound effect number 13 here.]` instead of playing sound.
+
+**Cause**: `play.html` loads `main.js` instead of `parchment.js`. Parchment 2025.1 ships two JS files:
+- **`parchment.js`** (134KB) — Full engine with AudioContext, Glk sound channels, `gestalt_Sound=1`. **Use this.**
+- **`main.js`** (176KB) — AsyncGlk standalone build with stub `glk_schannel_*` functions (all throw errors) and hardcoded `gestalt_Sound=0`. **Do NOT use for sound games.**
+
+When `gestalt_Sound` returns 0, the Inform 7 runtime disables sound and prints text fallback instead.
+
+**Fix**: In your play.html, change `<script src="...main.js">` to `<script src="...parchment.js">`. The `setup-web.sh` script now validates this and warns if the wrong file is referenced.
+
+### 2. Colon in story title
+
+**Symptom**: `inblorb` fails or produces a corrupt blorb. On Windows, you may see file-not-found errors mentioning truncated filenames.
+
+**Cause**: Inform 7 derives filenames from the title in line 1 of `story.ni`. Colons (`:`) are illegal in Windows filenames. The title `"Zork I: The Great Underground Empire"` produces `Zork I: The Great Underground E.gblorb` which cannot be written.
+
+**Fix**: Replace `:` with `-` in the title: `"Zork I - The Great Underground Empire"`. The `compile.sh` script now checks for this before compilation and exits with a clear error.
+
+### 3. Sounds/ directory not at project root
+
+**Symptom**: `compile.sh --sound` fails at the "Generating blurb" step, or `generate-blurb.sh` reports "Sounds directory not found".
+
+**Cause**: `compile.sh` looks for `.ogg` files at `projects/<name>/Sounds/`. If your sound files are in `<name>.materials/Sounds/` (the Inform 7 IDE convention), they won't be found.
+
+**Fix**: Copy the sounds to the project root:
+```bash
+cp -r projects/myproject/myproject.materials/Sounds projects/myproject/Sounds
+```
+Do NOT symlink — the sound directories may diverge between projects.
+
+### 4. Browser serving cached old JS
+
+**Symptom**: You changed `main.js → parchment.js` in the template, recompiled, but sound still doesn't work.
+
+**Cause**: The browser cached the old JavaScript files. HTTP servers like `python -m http.server` don't set cache-control headers, so browsers aggressively cache `.js` files.
+
+**Fix**: Hard refresh with Ctrl+Shift+R, or open in an incognito/private window. Both `setup-web.sh` and `deploy.sh` now append `?v=<timestamp>` cache-busting params to all `.js` and `.css` references to prevent this.
+
+### 5. Binary is .ulx instead of .gblorb
+
+**Symptom**: Game loads but has no sound. No errors in console. The `.js` file is suspiciously small (1-2 MB instead of 19+ MB for a game with 25 sounds).
+
+**Cause**: The base64-encoded file contains a naked `.ulx` binary (no embedded audio resources) instead of a `.gblorb` (blorb with sounds).
+
+**Fix**: Recompile with `compile.sh <name> --sound` which automatically encodes the `.gblorb` via `setup-web.sh --blorb`. Check that the output says "Encoding name.gblorb" not "Encoding name.ulx".
+
+### 6. Missing `story_name` in parchment_options
+
+**Symptom**: Page shows `TypeError: Cannot read properties of undefined (reading 'substring')` instead of loading the game.
+
+**Cause**: `parchment.js` calls `.substring()` on `parchment_options.story_name` to detect the file type (`.ulx.js`, `.gblorb.js`, `.z3.js`). If `story_name` is missing or undefined, the call crashes.
+
+**Fix**: Add `story_name` to `parchment_options` in every play page:
+```javascript
+parchment_options = {
+    default_story: ['path/to/game.gblorb.js'],
+    lib_path: 'lib/parchment/',
+    story_name: 'game.gblorb.js',    // ← REQUIRED by parchment.js
+    use_proxy: 0,
+    do_vm_autosave: 1,
+};
+```
+For dynamic pages where the binary path comes from a URL parameter, derive it:
+```javascript
+story_name: binaryPath.split('/').pop()
+```
+
+### 7. Autoplay blocked by browser
+
+**Symptom**: Game loads, first sound doesn't play, but subsequent sounds (after typing a command) work fine.
+
+**Cause**: Browsers block AudioContext until user interaction. The first sound may be issued before the user types anything.
+
+**Fix**: This is expected browser behavior. Parchment handles it — once the user types their first command (which counts as interaction), AudioContext is unlocked and all subsequent sounds play normally.
 
 ## Sources
 
