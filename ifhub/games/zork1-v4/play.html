@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <title>Zork I (v4 — Current)</title>
 <meta name="viewport" content="width=device-width, user-scalable=no">
-<link rel="stylesheet" href="../../lib/parchment/parchment.css?v=1772604112">
-<link rel="stylesheet" href="../../lib/parchment/main.css?v=1772604112">
+<link rel="stylesheet" href="../../lib/parchment/parchment.css?v=1772604861">
+<link rel="stylesheet" href="../../lib/parchment/main.css?v=1772604861">
 
 <style>
 /* ── Houdini @property — register as <color> for smooth transitions ── */
@@ -269,7 +269,7 @@ body.crt-fade #gameport::after {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ROOM: Up a Tree — canopy sway, dappled light, falling leaves
+   Tree area — leaves, dappled light, canopy glow, sway, text shimmer
    ═══════════════════════════════════════════════════════════════ */
 
 @keyframes treeSway {
@@ -282,14 +282,22 @@ body.crt-fade #gameport::after {
 @keyframes canopyGlow {
   0%, 100% {
     box-shadow:
-      inset 0 0 150px 30px rgba(30,120,20,0.10),
-      inset 0 80px 100px -20px rgba(60,160,30,0.12);
+      inset 0 0 120px 20px rgba(30,120,20,0.04),
+      inset 0 80px 80px -30px rgba(60,160,30,0.06);
   }
   50% {
     box-shadow:
-      inset 0 0 150px 30px rgba(50,150,30,0.22),
-      inset 0 80px 100px -20px rgba(80,200,40,0.28);
+      inset 0 0 120px 20px rgba(50,150,30,0.10),
+      inset 0 80px 80px -30px rgba(80,200,40,0.14);
   }
+}
+
+@keyframes textShimmer {
+  0%, 100% { text-shadow: none; color: var(--mood-buffer-fg); }
+  20%  { text-shadow: 0 0 6px rgba(100,180,60,0.25); }
+  40%  { text-shadow: 0 0 10px rgba(120,200,70,0.35), 0 0 3px rgba(80,160,40,0.15); color: #c0d8a0; }
+  60%  { text-shadow: 0 0 4px rgba(140,210,80,0.20); }
+  80%  { text-shadow: 0 0 8px rgba(90,170,50,0.30); color: #b8d0a0; }
 }
 
 @keyframes windGust {
@@ -339,16 +347,22 @@ body.crt-fade #gameport::after {
   100% { transform: translateY(105vh) translateX(20px)   rotate(660deg); opacity: 0; }
 }
 
-body.mood-tree .BufferWindow {
+/* mood-tree: base effect (Forest Path + Up a Tree) — leaves, dappled light */
+/* mood-tree-canopy: Up a Tree only — adds canopy glow */
+/* mood-tree-sway: after egg taken in Up a Tree — adds sway + text shimmer */
+
+/* Canopy glow on buffer (Up a Tree only) */
+body.mood-tree-canopy .BufferWindow {
   animation: canopyGlow 7s ease-in-out infinite;
 }
 
-body.mood-tree .BufferWindowInner {
-  animation: treeSway 12s ease-in-out infinite;
+/* Sway + text shimmer — after egg taken */
+body.mood-tree-sway .BufferWindowInner {
+  animation: treeSway 12s ease-in-out infinite, textShimmer 6s ease-in-out infinite;
   transform-origin: top center;
 }
 
-body.mood-tree .GridWindow {
+body.mood-tree-sway .GridWindow {
   animation: windGust 15s ease-in-out infinite;
 }
 
@@ -533,8 +547,8 @@ body.sword-glow-bright::after {
 }
 </style>
 
-<script src="../../lib/parchment/jquery.min.js?v=1772604112"></script>
-<script src="../../lib/parchment/ie.js?v=1772604112" nomodule></script>
+<script src="../../lib/parchment/jquery.min.js?v=1772604861"></script>
+<script src="../../lib/parchment/ie.js?v=1772604861" nomodule></script>
 <script>
     // story_name is REQUIRED — parchment.js calls .substring() on it to detect
     // the file type (.ulx.js, .gblorb.js, .z3.js). Without it you get:
@@ -547,8 +561,8 @@ body.sword-glow-bright::after {
         do_vm_autosave: 1,
     };
 </script>
-<script src="../../lib/parchment/parchment.js?v=1772604112"></script>
-<script src="../../lib/parchment/resourcemap.js?v=1772604112"></script>
+<script src="../../lib/parchment/parchment.js?v=1772604861"></script>
+<script src="../../lib/parchment/resourcemap.js?v=1772604861"></script>
 <script>
     window.addEventListener('pageshow', function(e) {
         if (e.persisted) { window.location.reload(); }
@@ -733,11 +747,22 @@ body.sword-glow-bright::after {
   }
 
   function handleRoomEffects(roomName) {
-    if (roomName === 'Up a Tree' && eggTaken) {
+    // Three-tier tree effects:
+    //   Forest Path:              mood-tree (dappled light + leaves)
+    //   Up a Tree:                mood-tree + mood-tree-canopy (+ canopy glow)
+    //   Up a Tree after egg:      mood-tree + mood-tree-canopy + mood-tree-sway (+ sway + text shimmer)
+    document.body.classList.remove('mood-tree', 'mood-tree-canopy', 'mood-tree-sway');
+
+    if (roomName === 'Forest Path' || roomName === 'Up a Tree') {
       document.body.classList.add('mood-tree');
       spawnLeaves();
+      if (roomName === 'Up a Tree') {
+        document.body.classList.add('mood-tree-canopy');
+        if (eggTaken) {
+          document.body.classList.add('mood-tree-sway');
+        }
+      }
     } else {
-      document.body.classList.remove('mood-tree');
       clearLeaves();
     }
   }
@@ -746,8 +771,7 @@ body.sword-glow-bright::after {
     eggTaken = true;
     console.log('[mood] Egg taken — tree disturbed!');
     if (currentRoom === 'Up a Tree') {
-      document.body.classList.add('mood-tree');
-      spawnLeaves();
+      document.body.classList.add('mood-tree-sway');
     }
   }
 

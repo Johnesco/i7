@@ -283,7 +283,10 @@ body.crt-fade #gameport::after {
   opacity: 0;
 }
 
-/* ── Up a Tree — canopy glow, sway, dappled light, falling leaves ── */
+/* ── Tree area — leaves, dappled light, canopy glow, sway, text shimmer ── */
+/* mood-tree: base effect (Forest Path + Up a Tree) — leaves, dappled light */
+/* mood-tree-canopy: Up a Tree only — adds canopy glow */
+/* mood-tree-sway: after egg taken in Up a Tree — adds sway + text shimmer */
 
 @keyframes treeSway {
   0%, 100% { transform: rotate(-0.5deg) translateX(-3px); }
@@ -302,14 +305,22 @@ body.crt-fade #gameport::after {
 @keyframes canopyGlow {
   0%, 100% {
     box-shadow:
-      inset 0 0 150px 30px rgba(30,120,20,0.10),
-      inset 0 80px 100px -20px rgba(60,160,30,0.12);
+      inset 0 0 120px 20px rgba(30,120,20,0.04),
+      inset 0 80px 80px -30px rgba(60,160,30,0.06);
   }
   50% {
     box-shadow:
-      inset 0 0 150px 30px rgba(50,150,30,0.22),
-      inset 0 80px 100px -20px rgba(80,200,40,0.28);
+      inset 0 0 120px 20px rgba(50,150,30,0.10),
+      inset 0 80px 80px -30px rgba(80,200,40,0.14);
   }
+}
+
+@keyframes textShimmer {
+  0%, 100% { text-shadow: none; color: var(--mood-buffer-fg); }
+  20%  { text-shadow: 0 0 6px rgba(100,180,60,0.25); }
+  40%  { text-shadow: 0 0 10px rgba(120,200,70,0.35), 0 0 3px rgba(80,160,40,0.15); color: #c0d8a0; }
+  60%  { text-shadow: 0 0 4px rgba(140,210,80,0.20); }
+  80%  { text-shadow: 0 0 8px rgba(90,170,50,0.30); color: #b8d0a0; }
 }
 
 @keyframes dapple {
@@ -352,19 +363,22 @@ body.crt-fade #gameport::after {
   100% { transform: translateY(105vh) translateX(20px)   rotate(660deg); opacity: 0; }
 }
 
-body.mood-tree .BufferWindow {
+/* Base tree effect — canopy glow on buffer (Up a Tree only) */
+body.mood-tree-canopy .BufferWindow {
   animation: canopyGlow 7s ease-in-out infinite;
 }
 
-body.mood-tree .BufferWindowInner {
-  animation: treeSway 12s ease-in-out infinite;
+/* Sway + text shimmer — after egg taken */
+body.mood-tree-sway .BufferWindowInner {
+  animation: treeSway 12s ease-in-out infinite, textShimmer 6s ease-in-out infinite;
   transform-origin: top center;
 }
 
-body.mood-tree .GridWindow {
+body.mood-tree-sway .GridWindow {
   animation: windGust 15s ease-in-out infinite;
 }
 
+/* Dappled light + vignette pseudo-elements */
 body.zork1-enhanced #gameport::before,
 body.zork1-enhanced #gameport::after {
   content: '';
@@ -393,6 +407,7 @@ body.zork1-enhanced #gameport::after {
   animation: vignetteBreath 6s ease-in-out infinite;
 }
 
+/* Dappled light visible in any tree area */
 body.mood-tree #gameport::before,
 body.mood-tree #gameport::after {
   opacity: 1;
@@ -781,11 +796,22 @@ body.sword-glow-bright::after {
   }
 
   function handleRoomEffects(roomName) {
-    if (roomName === 'Up a Tree' && eggTaken) {
+    // Three-tier tree effects:
+    //   Forest Path:              mood-tree (dappled light + leaves)
+    //   Up a Tree:                mood-tree + mood-tree-canopy (+ canopy glow)
+    //   Up a Tree after egg:      mood-tree + mood-tree-canopy + mood-tree-sway (+ sway + text shimmer)
+    document.body.classList.remove('mood-tree', 'mood-tree-canopy', 'mood-tree-sway');
+
+    if (roomName === 'Forest Path' || roomName === 'Up a Tree') {
       document.body.classList.add('mood-tree');
       spawnLeaves();
+      if (roomName === 'Up a Tree') {
+        document.body.classList.add('mood-tree-canopy');
+        if (eggTaken) {
+          document.body.classList.add('mood-tree-sway');
+        }
+      }
     } else {
-      document.body.classList.remove('mood-tree');
       clearLeaves();
     }
   }
@@ -794,8 +820,7 @@ body.sword-glow-bright::after {
     eggTaken = true;
     console.log('[mood] Egg taken — tree disturbed!');
     if (currentRoom === 'Up a Tree') {
-      document.body.classList.add('mood-tree');
-      spawnLeaves();
+      document.body.classList.add('mood-tree-sway');
     }
   }
 
