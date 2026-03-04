@@ -1,5 +1,7 @@
 "Fever Dream" by Anonymous
 
+The release number is 2.
+
 Sound of glass-sfx is the file "glass.ogg".
 Sound of valve-screech is the file "valve-screech.ogg".
 Sound of spray-hiss is the file "spray-hiss.ogg".
