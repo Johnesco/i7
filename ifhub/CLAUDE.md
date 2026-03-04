@@ -10,8 +10,8 @@ ifhub/
 ├── index.html             ← Landing page (game descriptions, links)
 ├── app.html               ← Player UI (game selector, source viewer, tabs)
 ├── play.html              ← Shared Parchment player (loaded in iframe by app.html; has version-gated CSS effects for zork1 v4+)
-├── play-template.html     ← Template for standalone play pages (generated per-game)
-├── games.json             ← Game registry (id, title, paths, sound flag)
+├── landing-template.html  ← Template for per-game landing pages
+├── games.json             ← Game registry (id, title, paths, sound flag, deploy config)
 ├── deploy.sh              ← Copies game assets from projects/ into games/
 ├── lib/parchment/         ← Shared Parchment JS libraries (checked in)
 └── games/                 ← Game assets (checked in, updated by deploy.sh)
@@ -28,13 +28,13 @@ Each game's source of truth lives under `C:\code\ifhub\projects\`. The `deploy.s
 
 - Source (`.ni`) and binary (`.ulx.js` or `.z3.js`)
 - Walkthrough files (HTML, text, guide, output)
-- Standalone `index.html` play pages (generated from `play-template.html`)
+- Standalone play pages (generated from `tools/web/play-template.html`)
 
 ```bash
 bash deploy.sh
 ```
 
-Edit `deploy.sh` to add/remove games. Keep `games.json` in sync.
+Edit `games.json` to add/remove games — the `deploy` object in each entry specifies asset paths.
 
 ## Running Locally
 
@@ -46,10 +46,8 @@ python -m http.server 8000
 
 ## Adding a New Game
 
-1. Add the game to the `GAMES` array in `deploy.sh`
-2. Add a matching entry to `games.json`
-3. Optionally add to `WALKTHROUGH_DIRS` in `deploy.sh`
-4. Run `bash deploy.sh`
+1. Add a game entry to `games.json` with id, title, binary, source, and a `deploy` object with source/binary/walkthrough paths
+2. Run `bash deploy.sh`
 
 ## Hosting on the Web
 

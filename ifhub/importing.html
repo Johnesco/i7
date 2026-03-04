@@ -426,12 +426,14 @@ rm story.i6</code></pre>
 
 <h3>deploy.sh</h3>
 
-<p>The deploy script copies files from sibling project repos into the <code>games/</code> directory. It has two definition sections:</p>
+<p>The deploy script reads <code>games.json</code> to find asset paths and delegates to Python scripts in <code>tools/deploy/</code>. Each game entry has a <code>deploy</code> object with:</p>
 
 <ul>
-  <li><strong>GAMES array</strong> &mdash; space-separated triples: <code>id  source-path  binary-path</code> (paths relative to <code>$I7_ROOT</code>, which is the parent of the ifhub directory)</li>
-  <li><strong>WALKTHROUGH_DIRS map</strong> &mdash; maps game id to the directory containing walkthrough files (relative to <code>$I7_ROOT</code>)</li>
+  <li><strong>source</strong> &mdash; path to <code>.ni</code> source file (or <code>null</code> for games without Inform 7 source)</li>
+  <li><strong>binary</strong> &mdash; path to base64-encoded game binary</li>
+  <li><strong>walkthroughDir</strong> &mdash; directory containing walkthrough files (optional)</li>
 </ul>
+<p>All paths are relative to the ifhub root (<code>$I7_ROOT</code>).</p>
 
 <h3>games/ directory layout</h3>
 
@@ -614,11 +616,11 @@ More commentary.</code></pre>
   <span class="comment">...other fields...</span>
   <span class="key">"walkthrough"</span>: <span class="string">"games/mygame/walkthrough.html"</span>
 }</code></pre>
-    <p>Add the game to the <code>WALKTHROUGH_DIRS</code> map in <code>deploy.sh</code>:</p>
-<pre><code>WALKTHROUGH_DIRS=(
-  <span class="comment"># ...existing entries...</span>
-  [mygame]=<span class="string">"mygame/web"</span>
-)</code></pre>
+    <p>Add <code>walkthroughDir</code> to the game's <code>deploy</code> object in <code>games.json</code>:</p>
+<pre><code><span class="key">"deploy"</span>: {
+  <span class="comment">...existing fields...</span>
+  <span class="key">"walkthroughDir"</span>: <span class="string">"projects/mygame/web"</span>
+}</code></pre>
   </li>
 
   <li>
@@ -690,11 +692,12 @@ More commentary.</code></pre>
   <span class="key">"title"</span>: <span class="string">"Dracula\u2019s Castle"</span>,
   <span class="key">"sourceLabel"</span>: <span class="string">"dracula.ni"</span>,
   <span class="key">"source"</span>: <span class="string">"games/dracula/story.ni"</span>,
-  <span class="key">"binary"</span>: <span class="string">"games/dracula/dracula.ulx.js"</span>
+  <span class="key">"binary"</span>: <span class="string">"games/dracula/dracula.ulx.js"</span>,
+  <span class="key">"deploy"</span>: {
+    <span class="key">"source"</span>: <span class="string">"projects/dracula/story.ni"</span>,
+    <span class="key">"binary"</span>: <span class="string">"projects/dracula/web/lib/parchment/dracula.ulx.js"</span>
+  }
 }</code></pre>
-
-<pre><code><span class="comment"># deploy.sh GAMES array</span>
-<span class="string">"dracula     dracula/story.ni     dracula/web/lib/parchment/dracula.ulx.js"</span></code></pre>
 
 <h3>Full import (with walkthrough)</h3>
 
@@ -706,18 +709,14 @@ More commentary.</code></pre>
   <span class="key">"title"</span>: <span class="string">"Zork I (v3)"</span>,
   <span class="key">"sourceLabel"</span>: <span class="string">"zork1-v3.ni"</span>,
   <span class="key">"source"</span>: <span class="string">"games/zork1-v3/story.ni"</span>,
-  <span class="key">"binary"</span>: <span class="string">"games/zork1-v3/zork1.ulx.js"</span>,
-  <span class="key">"walkthrough"</span>: <span class="string">"games/zork1-v3/walkthrough.html"</span>
+  <span class="key">"binary"</span>: <span class="string">"games/zork1-v3/zork1.gblorb.js"</span>,
+  <span class="key">"walkthrough"</span>: <span class="string">"games/zork1-v3/walkthrough.html"</span>,
+  <span class="key">"deploy"</span>: {
+    <span class="key">"source"</span>: <span class="string">"projects/zork1/versions/v3/story.ni"</span>,
+    <span class="key">"binary"</span>: <span class="string">"projects/zork1/versions/v3/lib/parchment/zork1.gblorb.js"</span>,
+    <span class="key">"walkthroughDir"</span>: <span class="string">"projects/zork1/versions/v3"</span>
+  }
 }</code></pre>
-
-<pre><code><span class="comment"># deploy.sh</span>
-GAMES=(
-  <span class="string">"zork1-v3    projects/zork1/versions/v3/story.ni     projects/zork1/versions/v3/lib/parchment/zork1.ulx.js"</span>
-)
-
-WALKTHROUGH_DIRS=(
-  [zork1-v3]=<span class="string">"projects/zork1/versions/v3"</span>
-)</code></pre>
 
 <h3>Multiple versions of the same game</h3>
 

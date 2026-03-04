@@ -4,7 +4,7 @@
 
 Fever Dream
 A Perceptual Horror by Anonymous
-Release 1 / Serial number 260302 / Inform 7 v10.1.2 / D
+Release 1 / Serial number 260303 / Inform 7 v10.1.2 / D
 
 
 You wake on a cold floor. Your head aches. You do not remember arriving.
@@ -62,7 +62,8 @@ A heavy metal cabinet stands against the far wall, locked tight.
 
 >Taken.
 
->It tastes of nothing. Then of everything. The walls ripple once and settle into new shapes. You understand, now, that this is not distortion. This is clarity.
+>[Sound effect number 6 here.]
+It tastes of nothing. Then of everything. The walls ripple once and settle into new shapes. You understand, now, that this is not distortion. This is clarity.
 
 The world has not changed. Your ability to see it has.
 
@@ -79,15 +80,18 @@ An iron valve grows from the north wall like a bone spur. Beside it, a sign hang
 The passage back up is to the west.
 
 
+[Sound effect number 5 here.]
 A hiss from the cracked pipes overhead. Something cold and chemical settles on your skin, your eyes, your tongue. You blink. The letters on the sign shift. The walls flicker like a signal losing coherence.
 
 When your vision steadies, the world has not returned to normal. It has gone further.
 
->You grip the handle and turn it left. Metal screams against metal. Below, the dark water begins to move -- circling, spiraling, draining. The level drops and keeps dropping until only a slick of pale residue remains on the bricks.
+>[Sound effect number 4 here.]
+You grip the handle and turn it left. Metal screams against metal. Below, the dark water begins to move -- circling, spiraling, draining. The level drops and keeps dropping until only a slick of pale residue remains on the bricks.
 
 The drainage grate in the floor stands open now, revealing a narrow passage below.
 
->You lower yourself through the grate.
+>[Sound effect number 9 here.]
+You lower yourself through the grate.
 
 Source
 Y0u desc3nd thr0ugh th3 gr4te 1nto a sp@ce th4t sh0uld n0t ex1st. The w4lls ar3 n0t w4lls -- th3y ar3 m3mbranes, tr@nsluc3nt and ve1ned. L1ght c0mes fr0m 1ns1de th3m.
@@ -95,7 +99,8 @@ Y0u desc3nd thr0ugh th3 gr4te 1nto a sp@ce th4t sh0uld n0t ex1st. The w4lls ar3 
 In th3 c3nter, a l0w st0ne b@sin h0lds s0meth1ng lum1nous. 1t 1s w@rm.
 
 
->
+>[Sound effect number 8 here.]
+
 
     *** You reach in. It reaches back. ***
 

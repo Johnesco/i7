@@ -7,7 +7,12 @@
     "sourceBrowser": true,
     "binary": "games/zork1-v0/zork1.z3.js",
     "walkthrough": "games/zork1-v0/walkthrough.html",
-    "versionLabel": "v0 \u2014 Original ZIL"
+    "versionLabel": "v0 \u2014 Original ZIL",
+    "deploy": {
+      "source": null,
+      "binary": "projects/zork1/versions/v0/zork1.z3.js",
+      "walkthroughDir": "projects/zork1/versions/v0"
+    }
   },
   {
     "id": "zork1-v1",
@@ -16,7 +21,12 @@
     "source": "games/zork1-v1/story.ni",
     "binary": "games/zork1-v1/zork1.ulx.js",
     "walkthrough": "games/zork1-v1/walkthrough.html",
-    "versionLabel": "v1 \u2014 The Port"
+    "versionLabel": "v1 \u2014 The Port",
+    "deploy": {
+      "source": "projects/zork1/versions/v1/story.ni",
+      "binary": "projects/zork1/versions/v1/lib/parchment/zork1.ulx.js",
+      "walkthroughDir": "projects/zork1/versions/v1"
+    }
   },
   {
     "id": "zork1-v2",
@@ -25,7 +35,12 @@
     "source": "games/zork1-v2/story.ni",
     "binary": "games/zork1-v2/zork1.ulx.js",
     "walkthrough": "games/zork1-v2/walkthrough.html",
-    "versionLabel": "v2 \u2014 Bug Fixes"
+    "versionLabel": "v2 \u2014 Bug Fixes",
+    "deploy": {
+      "source": "projects/zork1/versions/v2/story.ni",
+      "binary": "projects/zork1/versions/v2/lib/parchment/zork1.ulx.js",
+      "walkthroughDir": "projects/zork1/versions/v2"
+    }
   },
   {
     "id": "zork1-v3",
@@ -35,7 +50,12 @@
     "binary": "games/zork1-v3/zork1.gblorb.js",
     "walkthrough": "games/zork1-v3/walkthrough.html",
     "sound": "blorb",
-    "versionLabel": "v3 \u2014 Sound"
+    "versionLabel": "v3 \u2014 Sound",
+    "deploy": {
+      "source": "projects/zork1/versions/v3/story.ni",
+      "binary": "projects/zork1/versions/v3/lib/parchment/zork1.gblorb.js",
+      "walkthroughDir": "projects/zork1/versions/v3"
+    }
   },
   {
     "id": "zork1-v4",
@@ -47,6 +67,11 @@
     "sound": "blorb",
     "playTemplate": "projects/zork1/play-template.html",
     "versionLabel": "v4 \u2014 Modern IF (Current)",
+    "deploy": {
+      "source": "projects/zork1/versions/v4/story.ni",
+      "binary": "projects/zork1/versions/v4/lib/parchment/zork1.gblorb.js",
+      "walkthroughDir": "projects/zork1/versions/v4"
+    },
     "card": {
       "title": "Zork I - The Great Underground Empire",
       "meta": "Infocom (translated to Inform 7)",
@@ -188,6 +213,12 @@
     "sourceLabel": "dracula.ni",
     "source": "games/dracula/story.ni",
     "binary": "games/dracula/dracula.ulx.js",
+    "walkthrough": "games/dracula/walkthrough.html",
+    "deploy": {
+      "source": "projects/dracula/story.ni",
+      "binary": "projects/dracula/web/lib/parchment/dracula.ulx.js",
+      "walkthroughDir": "projects/dracula/tests/inform7"
+    },
     "card": {
       "title": "Dracula\u2019s Castle",
       "meta": "An Interactive Adventure",
@@ -204,6 +235,11 @@
     "walkthrough": "games/feverdream/walkthrough.html",
     "playTemplate": "projects/feverdream/play-template.html",
     "sound": "blorb",
+    "deploy": {
+      "source": "projects/feverdream/story.ni",
+      "binary": "projects/feverdream/web/lib/parchment/feverdream.gblorb.js",
+      "walkthroughDir": "projects/feverdream/tests"
+    },
     "card": {
       "title": "Fever Dream",
       "meta": "A Perceptual Horror",
@@ -217,6 +253,11 @@
     "source": "games/sample/story.ni",
     "binary": "games/sample/sample.ulx.js",
     "walkthrough": "games/sample/walkthrough.html",
+    "deploy": {
+      "source": "projects/sample/story.ni",
+      "binary": "projects/sample/web/lib/parchment/sample.ulx.js",
+      "walkthroughDir": "projects/sample/web"
+    },
     "card": {
       "title": "Sample",
       "meta": "An Interactive Fiction",

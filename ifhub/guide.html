@@ -412,18 +412,17 @@ bash tools/compile.sh sample</code></pre>
     copies <code>story.ni</code> and the base64 binary (<code>.ulx.js</code> or <code>.gblorb.js</code>)
     into <code>ifhub/games/&lt;id&gt;/</code></li>
   <li><strong>Copies walkthroughs</strong> &mdash; HTML walkthroughs and transcripts</li>
-  <li><strong>Generates standalone play pages</strong> &mdash; reads <code>games.json</code> and
-    <code>play-template.html</code>, substitutes title/binary, appends cache-busting
-    params, and writes <code>games/&lt;id&gt;/index.html</code> for each game</li>
+  <li><strong>Generates standalone play pages</strong> &mdash; runs <code>tools/deploy/generate-play-pages.py</code>
+    which reads <code>games.json</code> and <code>tools/web/play-template.html</code>, substitutes
+    title/binary, appends cache-busting params, and writes <code>games/&lt;id&gt;/play.html</code> for each game</li>
 </ol>
 
 <h3>Adding a new game</h3>
-<p>Update these 3 places:</p>
+<p>Update <code>games.json</code> only:</p>
 <ol>
-  <li><code>games.json</code> &mdash; add an entry with id, title, binary path, and optional
-    sound/card/walkthrough fields</li>
-  <li><code>deploy.sh</code> GAMES array &mdash; add the <code>"id  source-path  binary-path"</code> line</li>
-  <li><code>deploy.sh</code> WALKTHROUGH_DIRS &mdash; add if the game has walkthrough files</li>
+  <li>Add a game entry with id, title, binary path, and optional sound/card/walkthrough fields</li>
+  <li>Add a <code>deploy</code> object with <code>source</code>, <code>binary</code>, and <code>walkthroughDir</code> paths
+    (relative to the ifhub root) so <code>deploy.sh</code> knows where to find the project assets</li>
 </ol>
 
 <h3>Entry points</h3>

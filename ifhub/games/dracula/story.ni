@@ -375,13 +375,13 @@ Instead of going inside in the Study:
 	otherwise:
 		now the player is in the Brick Fireplace Room.
 
-Chapter 9 - Dropping Oil on Fire
+Chapter 9 - Dropping Holy Water on Fire
 
-Instead of dropping the flask of oil in the Study:
+Instead of dropping the holywater in the Study:
 	if the fire-extinguished is false:
-		say "The oil douses the flames. The fire sputters and dies, leaving only smoldering ashes.";
+		say "The holy water douses the flames. The fire sputters and dies, leaving only smoldering ashes.";
 		now the fire-extinguished is true;
-		remove the flask of oil from play;
+		remove the holywater from play;
 	otherwise:
 		continue the action.
 
