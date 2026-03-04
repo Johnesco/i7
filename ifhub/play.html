@@ -283,7 +283,21 @@ body.crt-fade #gameport::after {
   opacity: 0;
 }
 
-/* ── Up a Tree — canopy glow, dappled light, falling leaves ── */
+/* ── Up a Tree — canopy glow, sway, dappled light, falling leaves ── */
+
+@keyframes treeSway {
+  0%, 100% { transform: rotate(-0.5deg) translateX(-3px); }
+  30%      { transform: rotate(0.3deg) translateX(2px); }
+  60%      { transform: rotate(0.5deg) translateX(4px); }
+  80%      { transform: rotate(-0.2deg) translateX(-1px); }
+}
+
+@keyframes windGust {
+  0%, 65%, 100% { transform: skewX(0deg) translateX(0); }
+  70%           { transform: skewX(0.3deg) translateX(3px); }
+  80%           { transform: skewX(-0.2deg) translateX(-2px); }
+  92%           { transform: skewX(0.1deg) translateX(1px); }
+}
 
 @keyframes canopyGlow {
   0%, 100% {
@@ -340,6 +354,15 @@ body.crt-fade #gameport::after {
 
 body.mood-tree .BufferWindow {
   animation: canopyGlow 7s ease-in-out infinite;
+}
+
+body.mood-tree .BufferWindowInner {
+  animation: treeSway 12s ease-in-out infinite;
+  transform-origin: top center;
+}
+
+body.mood-tree .GridWindow {
+  animation: windGust 15s ease-in-out infinite;
 }
 
 body.zork1-enhanced #gameport::before,
