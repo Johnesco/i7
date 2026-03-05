@@ -4,7 +4,7 @@
 
 Fever Dream
 A Perceptual Horror by Anonymous
-Release 1 / Serial number 260303 / Inform 7 v10.1.2 / D
+Release 2 / Serial number 260304 / Inform 7 v10.1.2 / D
 
 
 You wake on a cold floor. Your head aches. You do not remember arriving.

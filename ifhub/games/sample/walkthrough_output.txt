@@ -4,11 +4,8 @@
 
 Sample
 An Interactive Fiction by Claude Code
-Release 1
-
-Sample
-An Interactive Fiction by Claude Code
-Release 1 / Serial number 260304 / Inform 7 v10.1.2 / D
+Release 1 / Serial number 260305 / Inform 7 v10.1.2 / D
+A practice game for learning Inform 7.
 
 Entrance Hall
 A grand hall with marble floors and high ceilings. A crystal chandelier hangs overhead. Exits lead north to a library, east to a kitchen, and south to a garden.
