@@ -135,6 +135,7 @@ The testing framework provides three reusable scripts driven by a per-project `p
 | `run-walkthrough.sh` | Runs a walkthrough through an interpreter with RNG seeding and diagnostics |
 | `find-seeds.sh` | Sweeps RNG seeds to find ones where the walkthrough achieves a passing score |
 | `run-tests.sh` | Wraps `regtest.py` with project-specific engine/game/test file |
+| `generate-guide.py` | Generates `walkthrough-guide.txt` from walkthrough commands + transcript (auto-detects sound prompt) |
 | `pcre_grep.py` | Portable `grep -oP` replacement using Python `re` (Git Bash lacks PCRE grep) |
 | `wsl-check.sh` | WSL health check (`check_wsl_health`) and path conversion (`gitbash_to_wsl_path`) |
 
