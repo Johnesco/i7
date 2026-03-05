@@ -2,9 +2,6 @@
 
 
 
-Do you want sound? (y/n) 
-Sound disabled. Type SOUND ON during play to enable it.
-
 Zork I - The Great Underground Empire
 An Interactive Fiction by Infocom (translated to Inform 7)
 Release 4 / Serial number 260305 / Inform 7 v10.1.2 / D
