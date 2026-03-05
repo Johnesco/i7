@@ -986,7 +986,7 @@ function switchGame(gameId) {
   // Build iframe URL — use per-game play page if available, else shared player
   var iframe = document.getElementById('game-frame');
   var iframeSrc;
-  if (g.playTemplate) {
+  if (g.playTemplate || !g.binary) {
       iframeSrc = 'games/' + gameId + '/play.html';
   } else {
       iframeSrc = 'play.html?binary=' + encodeURIComponent(g.binary) + '&title=' + encodeURIComponent(g.title);

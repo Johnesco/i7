@@ -31,7 +31,13 @@
     "base": "dracula",
     "title": "Dracula's Castle",
     "meta": "An Interactive Adventure",
-    "description": "Explore Dracula's Castle and uncover its dark secret before midnight strikes. A horror-themed adventure written in Inform 7."
+    "description": "Explore Dracula's Castle and uncover its dark secret before midnight strikes. A horror-themed adventure written in Inform 7.",
+    "versions": [
+      {
+        "id": "dracula-v0",
+        "label": "v0 — Original BASIC"
+      }
+    ]
   },
   {
     "id": "feverdream",

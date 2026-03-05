@@ -19,11 +19,22 @@ python3 "$I7_ROOT/tools/deploy/copy-assets.py" \
     --games-json games.json \
     --i7-root "$I7_ROOT"
 
-# Copy v0 ZIL source browser (standalone HTML that fetches from GitHub)
-v0_browser="$I7_ROOT/projects/zork1/versions/v0/index.html"
-if [[ -f "$v0_browser" ]]; then
-  cp "$v0_browser" "games/zork1-v0/source-browser.html"
+# Copy v0 source browsers and assets
+# Zork1 v0: ZIL source browser (fetches from GitHub raw URLs)
+v0_src="$I7_ROOT/projects/zork1/versions/v0/source.html"
+if [[ -f "$v0_src" ]]; then
+  cp "$v0_src" "games/zork1-v0/source-browser.html"
   echo "  zork1-v0: source-browser.html copied"
+fi
+
+# Dracula v0: BASIC source browser + source files + placeholder play page
+dracula_v0="$I7_ROOT/projects/dracula/versions/v0"
+if [[ -d "$dracula_v0" ]]; then
+  mkdir -p "games/dracula-v0"
+  for f in source.html dracula.bas dracula-annotated.bas play.html index.html walkthrough.html; do
+    [[ -f "$dracula_v0/$f" ]] && cp "$dracula_v0/$f" "games/dracula-v0/$f"
+  done
+  echo "  dracula-v0: v0 pages + BASIC source copied"
 fi
 
 # --- Copy landing pages from projects ---

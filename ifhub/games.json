@@ -72,15 +72,30 @@
       "binary": "projects/zork1/versions/v4/lib/parchment/zork1.gblorb.js",
       "walkthroughDir": "projects/zork1/versions/v4"
     },
-    "landing": "projects/zork1/web/landing.html"
+    "landing": "projects/zork1/web/index.html"
+  },
+  {
+    "id": "dracula-v0",
+    "title": "Dracula\u2019s Castle (v0 \u2014 Original BASIC)",
+    "sourceLabel": "BASIC Source",
+    "source": "games/dracula-v0/source.html",
+    "sourceBrowser": true,
+    "walkthrough": "games/dracula-v0/walkthrough.html",
+    "versionLabel": "v0 \u2014 Original BASIC",
+    "deploy": {
+      "source": null,
+      "binary": null,
+      "walkthroughDir": null
+    }
   },
   {
     "id": "dracula",
-    "title": "Dracula\u2019s Castle",
+    "title": "Dracula\u2019s Castle (Current)",
     "sourceLabel": "dracula.ni",
     "source": "games/dracula/story.ni",
     "binary": "games/dracula/dracula.ulx.js",
     "walkthrough": "games/dracula/walkthrough.html",
+    "versionLabel": "Current \u2014 Inform 7",
     "deploy": {
       "source": "projects/dracula/story.ni",
       "binary": "projects/dracula/web/lib/parchment/dracula.ulx.js",
@@ -102,7 +117,7 @@
       "binary": "projects/feverdream/web/lib/parchment/feverdream.gblorb.js",
       "walkthroughDir": "projects/feverdream/tests"
     },
-    "landing": "projects/feverdream/web/landing.html"
+    "landing": "projects/feverdream/web/index.html"
   },
   {
     "id": "sample",
@@ -116,6 +131,6 @@
       "binary": "projects/sample/web/lib/parchment/sample.ulx.js",
       "walkthroughDir": "projects/sample/web"
     },
-    "landing": "projects/sample/web/landing.html"
+    "landing": "projects/sample/web/index.html"
   }
 ]

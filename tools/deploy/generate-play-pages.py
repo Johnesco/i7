@@ -41,6 +41,9 @@ def main():
             continue
 
         title = g["title"]
+        if not g.get("binary"):
+            print("  " + gid + ": skipped (no binary)")
+            continue
         binary = g["binary"].split("/")[-1]
 
         # Per-game template support: if playTemplate is set in games.json,
