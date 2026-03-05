@@ -221,7 +221,7 @@ bash /c/code/ifhub/tools/pipeline.sh zork1 --continue
 | **compile** | I7 → I6 → Glulx → Blorb(if sound) → web player | `compile.sh` |
 | **test** | Walkthrough + regtest (native or WSL) | `run-walkthrough.sh`, `run-tests.sh` |
 | **snapshot** | Sync root source to `versions/vN/`, recompile from it | `snapshot.sh` (requires `--version`) |
-| **deploy** | Copy to `ifhub/games/`, generate pages | `deploy.sh` |
+| **deploy** | Copy source, binary, and walkthrough files to `ifhub/games/`, generate pages | `deploy.sh` |
 | **push** | Stage changes, show summary, prompt before commit/push | `git` |
 
 Default with no stages = `compile` only. Stages are reordered to pipeline order automatically.
@@ -307,6 +307,17 @@ Compile with `--sound` to embed `.ogg` audio in a `.gblorb` binary. See `referen
 ### IF Hub Deployment
 
 The hub at `ifhub/` aggregates all games. Each game project owns its landing page (with `<meta name="ifhub:*">` tags for card metadata). Adding a new game requires updating `games.json` (with `deploy` and `landing` fields) and creating a landing page in the project's `web/` directory (copy `tools/web/landing-template.html`). `deploy.sh` copies landing pages, extracts card metadata into `cards.json` via `tools/deploy/extract-cards.py`, and copies assets via `tools/deploy/copy-assets.py` (no hardcoded arrays). See `docs/functional-spec.md` section 6 for full deploy pipeline details.
+
+**Walkthrough deployment**: `copy-assets.py` copies `walkthrough.txt`, `walkthrough-guide.txt`, and `walkthrough_output.txt` from each game's `walkthroughDir` (set in `games.json`) into `ifhub/games/<game-id>/`. If you update walkthrough files in a project without running `deploy.sh`, the hub will serve stale walkthrough data. Always run `deploy.sh` after walkthrough changes — or manually sync the files and commit both the project repo and the ifhub repo.
+
+Current `walkthroughDir` sources (from `games.json`):
+
+| Game ID | walkthroughDir |
+|---------|---------------|
+| zork1-v0 through v4 | `projects/zork1/versions/vN/` |
+| dracula | `projects/dracula/tests/inform7/` |
+| feverdream | `projects/feverdream/tests/` |
+| sample | `projects/sample/web/` |
 
 ### Troubleshooting
 
