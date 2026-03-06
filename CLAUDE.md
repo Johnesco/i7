@@ -318,7 +318,7 @@ Current `walkthroughDir` sources (from `games.json`):
 | zork1-v0 through v4 | `projects/zork1/vN/` |
 | dracula | `projects/dracula/tests/inform7/` |
 | feverdream | `projects/feverdream/tests/` |
-| sample | `projects/sample/web/` |
+| sample | `projects/sample/` |
 
 ### Troubleshooting
 

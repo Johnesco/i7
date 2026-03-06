@@ -59,11 +59,11 @@ ifhub/
 
 | Game ID | Title | Sound | Source |
 |---------|-------|-------|--------|
-| `zork1-v0` | Zork I (v0 — Original ZIL) | No | `projects/zork1/versions/v0/` |
-| `zork1-v1` | Zork I (v1 — The Port) | No | `projects/zork1/versions/v1/` |
-| `zork1-v2` | Zork I (v2 — Bug Fixes) | No | `projects/zork1/versions/v2/` |
-| `zork1-v3` | Zork I (v3 — Sound) | Yes | `projects/zork1/versions/v3/` |
-| `zork1-v4` | Zork I (v4 — Current) | Yes | `projects/zork1/versions/v4/` + `projects/zork1/web/` |
+| `zork1-v0` | Zork I (v0 — Original ZIL) | No | `projects/zork1/v0/` |
+| `zork1-v1` | Zork I (v1 — The Port) | No | `projects/zork1/v1/` |
+| `zork1-v2` | Zork I (v2 — Bug Fixes) | No | `projects/zork1/v2/` |
+| `zork1-v3` | Zork I (v3 — Sound) | Yes | `projects/zork1/v3/` |
+| `zork1-v4` | Zork I (v4 — Current) | Yes | `projects/zork1/v4/` |
 | `dracula` | Dracula's Castle | No | `projects/dracula/` |
 | `feverdream` | Fever Dream | Yes | `projects/feverdream/` |
 | `sample` | Sample | No | `projects/sample/` |
@@ -170,8 +170,8 @@ All asset paths are defined in the `deploy` object of each `games.json` entry:
   "id": "sample",
   "deploy": {
     "source": "projects/sample/story.ni",
-    "binary": "projects/sample/web/lib/parchment/sample.ulx.js",
-    "walkthroughDir": "projects/sample/web"
+    "binary": "projects/sample/lib/parchment/sample.ulx.js",
+    "walkthroughDir": "projects/sample"
   }
 }
 ```

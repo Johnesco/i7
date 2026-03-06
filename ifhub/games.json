@@ -114,10 +114,10 @@
     "sound": "blorb",
     "deploy": {
       "source": "projects/feverdream/story.ni",
-      "binary": "projects/feverdream/web/lib/parchment/feverdream.gblorb.js",
+      "binary": "projects/feverdream/lib/parchment/feverdream.gblorb.js",
       "walkthroughDir": "projects/feverdream/tests"
     },
-    "landing": "projects/feverdream/web/index.html"
+    "landing": "projects/feverdream/index.html"
   },
   {
     "id": "sample",
@@ -128,9 +128,9 @@
     "walkthrough": "games/sample/walkthrough.html",
     "deploy": {
       "source": "projects/sample/story.ni",
-      "binary": "projects/sample/web/lib/parchment/sample.ulx.js",
-      "walkthroughDir": "projects/sample/web"
+      "binary": "projects/sample/lib/parchment/sample.ulx.js",
+      "walkthroughDir": "projects/sample"
     },
-    "landing": "projects/sample/web/index.html"
+    "landing": "projects/sample/index.html"
   }
 ]

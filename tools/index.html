@@ -570,7 +570,7 @@ bash /c/code/ifhub/tools/snapshot.sh &lt;game-name&gt; &lt;version&gt; --update<
     <ul>
       <li>New version: copies story.ni, encodes .ulx, copies template from previous version</li>
       <li>Update (--update): refreshes source, binary, and walkthrough data</li>
-      <li>Output: <code>projects/&lt;game-name&gt;/versions/&lt;version&gt;/</code></li>
+      <li>Output: <code>projects/&lt;game-name&gt;/&lt;version&gt;/</code></li>
     </ul>
   </div>
 
@@ -774,7 +774,7 @@ bash /c/code/ifhub/tools/snapshot.sh zork1 v3 --update <span class="comment"># r
 python -m http.server 8000 --directory projects/zork1/_site</pre>
 
   <h3>Play locally</h3>
-  <pre class="code-block">python -m http.server 8000 --directory projects/sample/web
+  <pre class="code-block">python -m http.server 8000 --directory projects/sample
 <span class="comment"># Open http://localhost:8000/play.html</span></pre>
 
   <h3>Publish to GitHub Pages</h3>

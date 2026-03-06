@@ -3,7 +3,7 @@
 #
 # Usage:
 #   bash tools/validate-web.sh <path-to-web-dir>
-#   bash tools/validate-web.sh projects/sample/web
+#   bash tools/validate-web.sh projects/sample
 #   bash tools/validate-web.sh ifhub/games/zork1-v4
 #
 # Checks:
