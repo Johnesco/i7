@@ -328,9 +328,12 @@ The hub at `ifhub/` serves games **in-place** — it iframes each game's own pla
 - All games deploy to `johnesco.github.io/<game>/`, so same-origin iframes and fetch work freely
 
 **Adding a new game:**
-1. Add an entry to `games.json` with `id`, `title`, and URL fields
-2. Add card metadata to `cards.json`
-3. Ensure the game repo deploys to GitHub Pages
+1. **Enable GitHub Pages** on the game repo — required, the hub serves nothing without it
+   - Settings → Pages → Source: "Deploy from a branch", select `main`/`master`, path `/`
+   - Or: `gh api repos/Johnesco/<game>/pages -X POST --input - <<< '{"build_type":"legacy","source":{"branch":"main","path":"/"}}'`
+2. Add an entry to `games.json` with `id`, `title`, and URL fields
+3. Add card metadata to `cards.json`
+4. Verify `johnesco.github.io/<game>/play.html` loads before adding to the hub
 
 **Local development:**
 ```bash
@@ -363,7 +366,7 @@ Projects with multiple playable milestones store frozen snapshots in `vN/` direc
 |---|---|---|
 | zork1 | `projects/zork1/story.ni` | Source, tests, web site, versions v0–v4, GitHub Pages |
 | dracula | `projects/dracula/story.ni` | Source, BASIC reference, web site, GitHub Pages |
-| feverdream | `projects/feverdream/story.ni` | Source, tests, web player, native blorb sound |
+| feverdream | `projects/feverdream/story.ni` | Source, tests, web player, native blorb sound, GitHub Pages |
 | sample | `projects/sample/story.ni` | Source, tests, web player (local-only, no git) |
 
 Zork1 has 5 versions (v0–v4): v0 is original ZIL/Z-machine, v1–v2 are Inform 7 ports, v3–v4 add native blorb sound. See `projects/zork1/` for details.

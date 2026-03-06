@@ -318,9 +318,10 @@ All repos deploy under `johnesco.github.io/*`, making everything same-origin. Th
 ### 6.3 Adding a New Game
 
 1. Ensure the game project has the 4 standard pages (`play.html`, `source.html`, `walkthrough.html`, `index.html`)
-2. Deploy the game repo to GitHub Pages
-3. Add an entry to `games.json` with URL fields
-4. Add card metadata to `cards.json`
+2. **Enable GitHub Pages** on the game repo (required — the hub iframes pages directly from `johnesco.github.io/<game>/`)
+3. Verify `johnesco.github.io/<game>/play.html` loads before adding to the hub
+4. Add an entry to `games.json` with URL fields
+5. Add card metadata to `cards.json`
 
 ### 6.4 Local Development (`tools/dev-server.py`)
 

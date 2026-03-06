@@ -34,9 +34,12 @@ python tools/dev-server.py [--port 8000]
 
 ## Adding a New Game
 
-1. Add a game entry to `games.json` with id, title, and URL fields (`playUrl`, `sourceUrl`, `walkthroughUrl`, `landingUrl`)
-2. Add card metadata to `cards.json`
-3. Ensure the game repo deploys to GitHub Pages
+1. **Enable GitHub Pages** on the game repo (required — the hub iframes pages directly from `johnesco.github.io/<game>/`)
+   - Settings → Pages → Source: "Deploy from a branch", Branch: `main` (or `master`), Path: `/ (root)`
+   - Or via CLI: `gh api repos/Johnesco/<game>/pages -X POST --input - <<< '{"build_type":"legacy","source":{"branch":"main","path":"/"}}'`
+2. Add a game entry to `games.json` with id, title, and URL fields (`playUrl`, `sourceUrl`, `walkthroughUrl`, `landingUrl`)
+3. Add card metadata to `cards.json`
+4. Verify the game's play page loads at `johnesco.github.io/<game>/play.html` before adding to the hub
 
 ## Hosting on the Web
 
