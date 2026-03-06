@@ -87,9 +87,10 @@
     "id": "sample",
     "title": "Sample",
     "sourceLabel": "sample.ni",
+    "sourceBrowser": true,
     "playUrl": "/sample/play.html",
     "walkthroughUrl": "/sample/walkthrough.html",
-    "sourceUrl": "/sample/story.ni",
+    "sourceUrl": "/sample/source.html",
     "landingUrl": "/sample/"
   }
 ]
