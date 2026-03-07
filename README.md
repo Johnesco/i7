@@ -1,6 +1,8 @@
 # IF Hub
 
-Central hub for Inform 7 authoring, compilation, testing, and web deployment. All Inform 7 projects under `C:\code\` reference this location for shared tooling, reference docs, and the Parchment web player.
+Central hub for Inform 7 authoring, compilation, testing, and web deployment. All Inform 7 projects reference this location for shared tooling, reference docs, and the Parchment web player.
+
+**Live site**: [johnesco.github.io/ifhub](https://johnesco.github.io/ifhub/)
 
 ## Quick Start
 
@@ -17,18 +19,18 @@ bash tools/compile.sh mygame
 # Compile with embedded sound (requires Sounds/*.ogg at project root)
 bash tools/compile.sh mygame --sound
 
-# Compile from alternate source (e.g., a frozen version snapshot)
-bash tools/compile.sh mygame --source path/to/story.ni --compile-only
+# Play locally (hub + all games at production URLs)
+python tools/dev-server.py
+# Open http://127.0.0.1:8000/ifhub/app.html
 
-# Play locally
-python -m http.server 8000 --directory projects/mygame/web
-# Open http://localhost:8000/play.html
-
-# Run tests (via WSL)
-cd projects/mygame && wsl -e bash tests/run-tests.sh
+# Run tests
+bash projects/mygame/tests/run-tests.sh
 
 # Publish to GitHub Pages
 bash tools/publish.sh mygame
+
+# Interactive pipeline runner (arrow-key menus)
+python tools/run.py
 ```
 
 ## Directory Structure
@@ -38,42 +40,49 @@ ifhub/
 ├── README.md              ← You are here
 ├── CLAUDE.md              ← AI assistant instructions and full conventions
 ├── reference/             ← Inform 7 language reference docs
-│   ├── syntax-guide.md
-│   ├── text-formatting.md
-│   ├── world-model.md
-│   ├── understanding.md
-│   ├── lists.md
-│   ├── extensions.md
-│   ├── descriptions-adaptive-text.md
-│   ├── rulebooks.md
-│   └── activities-phrases.md
 ├── tools/                 ← Shared scripts (see tools/README.md)
-│   ├── compile.sh
-│   ├── new-project.sh
-│   ├── publish.sh
-│   ├── build-site.sh
-│   ├── snapshot.sh
-│   ├── regtest.py
-│   ├── testing/           ← Generic testing framework
-│   └── web/               ← Parchment web player setup
-├── projects/              ← Game projects
+│   ├── compile.sh         ← Compile I7 → I6 → Glulx → optional blorb → web player
+│   ├── new-project.sh     ← Scaffold a new project with build, test, and deploy infra
+│   ├── publish.sh         ← Publish a project to GitHub Pages
+│   ├── pipeline.sh        ← Orchestrator: compile → test → snapshot → push
+│   ├── snapshot.sh        ← Freeze/update version snapshots
+│   ├── build-site.sh      ← Assemble _site/ for deployment
+│   ├── run.py             ← Interactive pipeline runner (pip install InquirerPy)
+│   ├── dev-server.py      ← Multi-root dev server (hub + all games)
+│   ├── regtest.py         ← Shared RegTest runner
+│   ├── interpreters/      ← Native glulxe.exe + dfrotz.exe (built from source in MSYS2)
+│   ├── testing/           ← Generic testing framework (walkthroughs, seeds, regtests)
+│   └── web/               ← Parchment web player setup (templates, libraries)
+├── projects/              ← Game projects (each has its own git repo)
 │   ├── dracula/
 │   ├── feverdream/
 │   ├── sample/
 │   └── zork1/
-└── ifhub/                 ← IF Hub multi-game web player
+└── ifhub/                 ← IF Hub web player (see ifhub/README.md)
+    ├── index.html         ← Landing page
+    ├── app.html           ← Split-pane player (game + source viewer)
+    ├── games.json         ← Game registry (URLs, sound flags)
+    └── cards.json         ← Card metadata for landing page
 ```
 
 ## Projects
 
-| Project | Description | Sound | Web |
-|---------|-------------|-------|-----|
-| **zork1** | Zork I - The Great Underground Empire (ZIL-to-I7 translation) | 25 sounds (blorb) | [Play](https://johnesco.github.io/zork1/) |
-| **dracula** | Dracula's Castle | — | [Play](https://johnesco.github.io/dracula/) |
-| **feverdream** | Fever Dream | 1 sound (blorb) | — |
-| **sample** | Sample practice game (local-only) | — | — |
+| Project | Description | Sound | Pages |
+|---------|-------------|-------|-------|
+| **[zork1](https://johnesco.github.io/zork1/)** | Zork I — The Great Underground Empire (ZIL-to-I7 translation, 5 versions) | v3–v4: 25 sounds (blorb) | [Play](https://johnesco.github.io/ifhub/app.html?game=zork1-v4) |
+| **[dracula](https://johnesco.github.io/dracula/)** | Dracula's Castle — 1980s BASIC text adventure + Inform 7 translation | — | [Play](https://johnesco.github.io/ifhub/app.html?game=dracula) |
+| **[feverdream](https://johnesco.github.io/feverdream/)** | Fever Dream — A Perceptual Horror | blorb | [Play](https://johnesco.github.io/ifhub/app.html?game=feverdream) |
+| **[sample](https://johnesco.github.io/sample/)** | Sample — Inform 7 practice game | — | [Play](https://johnesco.github.io/ifhub/app.html?game=sample) |
 
-Each project has its own `story.ni` source file, test suite, and optional web player. See each project's `CLAUDE.md` or `README.md` for details.
+Each project has its own `story.ni` source file, test suite, web player, and GitHub Pages deployment. The hub serves games in-place — it iframes each game's own pages directly from GitHub Pages.
+
+## Three Game Formats
+
+IF Hub plays games spanning three eras of text adventure technology:
+
+- **ZIL → Z-machine** — Infocom's original language (1980s). Zork I v0 is the unmodified open-source Infocom release, compiled with ZILF to a .z3 binary and run via Parchment's Z-machine interpreter.
+- **BASIC → Inform 7** — Dracula's Castle preserves the original 1980s BASIC source with annotations; the playable version is a faithful Inform 7 translation.
+- **Inform 7 → Glulx** — A natural-English programming language. Source compiles to Glulx bytecode, optionally packaged with .ogg audio in a Blorb binary. Parchment executes via WASM.
 
 ## Tools Overview
 
@@ -81,115 +90,82 @@ All scripts live in `tools/`. See [`tools/README.md`](tools/README.md) for full 
 
 | Script | Purpose |
 |--------|---------|
-| `new-project.sh` | Scaffold a new Inform 7 project with build, test, and deploy infrastructure |
-| `compile.sh` | Compile a project (I7 → I6 → Glulx → optional blorb) and optionally update its web player |
+| `compile.sh` | Compile a project (I7 → I6 → Glulx → optional blorb → web player → walkthrough) |
+| `extract-commands.sh` | Extract walkthrough commands from a TRANSCRIPT file or `Test me` in source |
+| `register-game.sh` | Register a game in IF Hub (adds to `games.json` + `cards.json`) |
+| `new-project.sh` | Scaffold a new project with build, test, and deploy infrastructure |
 | `publish.sh` | Publish a project to GitHub Pages (creates repo on first run) |
-| `build-site.sh` | Assemble `_site/` from `web/` + version snapshots for deployment |
-| `snapshot.sh` | Freeze/update version snapshots (recompiles from frozen source, supports `.gblorb`) |
-| `run.py` | Interactive pipeline runner — arrow-key menus for common tasks (`pip install InquirerPy`) |
-| `regtest.py` | Shared RegTest runner (by Andrew Plotkin) for regression testing |
+| `pipeline.sh` | Orchestrator: compile → test → snapshot → push |
+| `snapshot.sh` | Freeze/update version snapshots (recompiles from frozen source) |
+| `build-site.sh` | Assemble `_site/` from project root + version directories |
+| `run.py` | Interactive pipeline runner — arrow-key menus for common tasks |
+| `dev-server.py` | Multi-root dev server (serves hub + all games at production URLs) |
+| `regtest.py` | Shared RegTest runner for regression testing |
 
 ### Testing Framework (`tools/testing/`)
 
+Deterministic walkthrough-based testing with native CLI interpreters built from source:
+
 | Script | Purpose |
 |--------|---------|
-| `run-walkthrough.sh` | Run a walkthrough with optional RNG seeding and diagnostics |
+| `run-walkthrough.sh` | Run a walkthrough with RNG seeding and diagnostics |
 | `find-seeds.sh` | Sweep RNG seeds to find deterministic golden seeds |
 | `run-tests.sh` | Run RegTest regression tests for a project |
 
+**Interpreters**: `glulxe.exe` (Glulx) and `dfrotz.exe` (Z-machine) built from source in MSYS2 UCRT64. These are gitignored — each developer builds locally with `bash tools/interpreters/build.sh`. Tests auto-detect native interpreters on Git Bash and fall back to WSL.
+
 ### Web Player (`tools/web/`)
 
-| Script / File | Purpose |
-|----------------|---------|
+| File | Purpose |
+|------|---------|
 | `setup-web.sh` | Bootstrap a Parchment web player for any project |
+| `generate-pages.sh` | Generate `index.html` + `source.html` from templates |
 | `play-template.html` | HTML template for player pages |
-| `landing-template.html` | Scaffold template for project landing pages (with `ifhub:*` meta tags) |
+| `landing-template.html` | Template for project landing pages |
+| `source-template.html` | Template for source browser pages |
 | `parchment/` | Shared Parchment 2025.1 library files (12 files) |
-
-## IF Hub Web Player (`ifhub/`)
-
-A standalone static site that serves multiple games through a unified browser interface with source viewer. See [`ifhub/CLAUDE.md`](ifhub/CLAUDE.md) for details.
-
-| Script / File | Purpose |
-|----------------|---------|
-| `deploy.sh` | Gather game assets + landing pages from projects into `games/`, generate `cards.json` |
-| `games.json` | Game registry (id, title, binary path, sound flag, landing page paths) |
-| `cards.json` | Card metadata extracted from landing pages (auto-generated by deploy.sh) |
-| `app.html` | Player UI with game selector and source viewer |
 
 ## Sound (Native Blorb)
 
-Games with sound use native Glk/Blorb — audio is embedded directly in the `.gblorb` binary. Parchment 2025.1 plays sounds via AudioContext when the game issues Glk sound channel calls. No separate audio files or JS overlay needed.
+Games with sound use native Glk/Blorb — audio is embedded directly in the `.gblorb` binary. Parchment 2025.1 plays sounds via AudioContext when the game issues Glk sound channel calls.
 
 ```bash
-# Compile with sound (full pipeline: I7 → I6 → ULX → blurb → gblorb → base64)
 bash tools/compile.sh zork1 --sound
 ```
 
 **Requirements**: Sound declarations in `story.ni` (`Sound of X is the file "Y.ogg"`) and `.ogg` files in `projects/<name>/Sounds/`.
 
-**Known gotchas** (all guarded by `compile.sh`):
-- **No colons in story title** — Windows can't create files with `:`. Use `-` instead.
-- **Sounds/ must be at project root** — not inside `.materials/Sounds/`.
-- **play.html must load `parchment.js`** — not `main.js` (which has no sound support). `setup-web.sh` validates this.
-- **`story_name` required in parchment_options** — `parchment.js` crashes without it.
-- **Browser cache** — `setup-web.sh` and `deploy.sh` add `?v=<timestamp>` cache-busting.
-
-See `reference/sound.md` for the full architecture and troubleshooting guide.
+See `reference/sound.md` for the full architecture.
 
 ## Compiler
 
-Inform 7 is installed system-wide. CLI compilation uses `-source` and `-o` flags — no `.inform/` IDE bundles.
+Inform 7 is installed system-wide. CLI compilation uses `-source` and `-o` flags — no `.inform/` IDE bundles needed.
 
 ```bash
-# Compile via compile.sh (recommended)
-bash tools/compile.sh <game-name>                          # standard
-bash tools/compile.sh <game-name> --sound                  # with blorb sound
-bash tools/compile.sh <game-name> --source PATH            # alternate story.ni
-bash tools/compile.sh <game-name> --compile-only           # skip web player update
-
-# Or manually:
-# Step 1: I7 → I6
-"/c/Program Files/Inform7IDE/Compilers/inform7.exe" \
-    -internal "/c/Program Files/Inform7IDE/Internal" \
-    -source /path/to/story.ni -o /path/to/story.i6 -silence
-
-# Step 2: I6 → Glulx
-"/c/Program Files/Inform7IDE/Compilers/inform6.exe" -w -G \
-    /path/to/story.i6 /path/to/output.ulx
+bash tools/compile.sh <game-name>                    # standard
+bash tools/compile.sh <game-name> --sound             # with blorb sound
+bash tools/compile.sh <game-name> --source PATH       # alternate story.ni
+bash tools/compile.sh <game-name> --compile-only      # skip web player update
 ```
-
-## Testing
-
-Tests run in WSL using Glulx/Z-machine interpreters. Each project has a `tests/` directory with thin wrapper scripts that delegate to the generic framework in `tools/testing/`.
-
-**Prerequisites** (WSL):
-- **glulxe**: `~/glulxe/glulxe` (Glulx interpreter for Inform 7 games)
-- **dfrotz**: `~/frotz-install/usr/games/dfrotz` (Z-machine interpreter for ZIL games)
-
-```bash
-# Run regression tests
-wsl -e bash tests/run-tests.sh
-
-# Run walkthrough with golden seed
-wsl -e bash tests/run-walkthrough.sh
-
-# Find working seeds after code changes
-wsl -e bash tests/find-seeds.sh
-```
-
-See `tools/README.md` for the full testing framework documentation.
 
 ## Reference Docs
 
-The `reference/` directory contains Inform 7 language reference documentation:
+The `reference/` directory contains Inform 7 language reference:
 
 - **syntax-guide.md** — Core syntax, kinds, properties, rooms, actions
 - **text-formatting.md** — Text substitutions and output formatting
-- **world-model.md** — Advanced kinds, properties, rooms/regions/backdrops, relations
+- **world-model.md** — Kinds, properties, rooms/regions/backdrops, relations
 - **understanding.md** — Understand command, parser tokens, grammar
-- **lists.md** — List operations, sorting, iteration
-- **extensions.md** — Extension system: including, authoring, versioning
-- **descriptions-adaptive-text.md** — Descriptions, quantifiers, adaptive text
 - **rulebooks.md** — Action processing, rules, going, persuasion, senses
 - **activities-phrases.md** — Activities, phrase definitions, control flow
+- **sound.md** — Sound architecture, native blorb, Parchment integration
+- **parchment-troubleshooting.md** — Web player errors and debugging
+- **windows-pitfalls.md** — Git Bash and MSYS2 gotchas
+
+## Built With
+
+- [Inform 7](http://inform7.com/) — interactive fiction authoring
+- [Parchment](https://github.com/curiousdannii/parchment) — browser-based IF interpreter
+- [ZILF](https://foss.heptapod.net/zilf/zilf) — ZIL compiler (for Zork I v0)
+- [MSYS2](https://www.msys2.org/) — native interpreter builds (glulxe, frotz)
+- [Claude](https://claude.ai/) by [Anthropic](https://www.anthropic.com/) — AI-assisted development

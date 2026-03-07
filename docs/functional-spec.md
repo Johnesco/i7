@@ -45,7 +45,7 @@ The hub entry point. Fetches `cards.json` and renders a card for each game.
 **Behavior:**
 - Renders game cards in document order (same order as `cards.json`)
 - Each card shows: title, meta text, description, and links
-- Links per card: "Play fullscreen" (game's own `playUrl`), "Play in IF Hub" (`app.html?game=<id>`), "About" (game's `landingUrl`)
+- Links per card: "Play fullscreen" (game's own `playUrl`), "Play in IF Hub" (`app.html?game=<id>`), "Source" (`/<base>/source.html`), "Walkthrough" (`/<base>/walkthrough.html`)
 - Sound-enabled games show "(with sound)" after the play label
 - Versioned games show additional version links below the main card links
 - Card metadata is maintained in `cards.json`
@@ -156,9 +156,11 @@ Each game project owns its own pages (`play.html`, `source.html`, `walkthrough.h
 
 Each game has 4 standard pages at its root (or version directory):
 - `play.html` — Parchment game player
-- `source.html` — source browser (for non-I7 games) or `story.ni` (raw I7 source)
+- `source.html` — source browser with syntax highlighting (all games now have this)
 - `walkthrough.html` — walkthrough viewer
-- `index.html` — landing page
+- `index.html` — landing page with Play, Source, and Walkthrough links
+
+**Landing page link pattern:** Each game's `index.html` provides direct links to Play, Source, and Walkthrough. The hub's landing page (`cards.json`) also links to `/<base>/source.html` and `/<base>/walkthrough.html` on each card.
 
 ---
 
@@ -201,16 +203,17 @@ Card metadata for the hub homepage is maintained in `cards.json`. Each card repr
 
 ### 3.3 Current Games
 
-| ID | Title | Sound | Play URL |
-|----|-------|-------|----------|
-| `zork1-v0` | Zork I (v0 — Original ZIL) | No | `/zork1/v0/play.html` |
-| `zork1-v1` | Zork I (v1) | No | `/zork1/v1/play.html` |
-| `zork1-v2` | Zork I (v2) | No | `/zork1/v2/play.html` |
-| `zork1-v3` | Zork I (v3) | Blorb | `/zork1/v3/play.html` |
-| `zork1-v4` | Zork I (v4 — Current) | Blorb | `/zork1/v4/play.html` |
-| `dracula` | Dracula's Castle | No | `/dracula/play.html` |
-| `feverdream` | Fever Dream | Blorb | `/feverdream/play.html` |
-| `sample` | Sample | No | `/sample/play.html` |
+| ID | Title | Sound | Play URL | Notes |
+|----|-------|-------|----------|-------|
+| `zork1-v0` | Zork I (v0 — Original ZIL) | No | `/zork1/v0/play.html` | `sourceBrowser: true` |
+| `zork1-v1` | Zork I (v1) | No | `/zork1/v1/play.html` | |
+| `zork1-v2` | Zork I (v2) | No | `/zork1/v2/play.html` | |
+| `zork1-v3` | Zork I (v3) | Blorb | `/zork1/v3/play.html` | |
+| `zork1-v4` | Zork I (v4 — Current) | Blorb | `/zork1/v4/play.html` | |
+| `dracula-v0` | Dracula's Castle (v0 — Original BASIC) | No | `/dracula/v0/play.html` | `sourceBrowser: true` |
+| `dracula` | Dracula's Castle (Current) | No | `/dracula/play.html` | |
+| `feverdream` | Fever Dream | Blorb | `/feverdream/play.html` | |
+| `sample` | Sample | No | `/sample/play.html` | `sourceBrowser: true` |
 
 ---
 
@@ -252,9 +255,12 @@ Line-by-line highlighting with these token classes:
 - Enter: next match; Shift+Enter: previous match; Escape: clear and blur
 - Uses TreeWalker to find text nodes, preserving existing syntax highlight spans
 
-### 4.4 Source Browser (ZIL)
+### 4.4 Source Browser Mode
 
-For games with `sourceBrowser: true` (currently only `zork1-v0`), the source pane loads a standalone HTML page in an iframe instead of the built-in code viewer. This page is a custom ZIL source browser with its own navigation and annotation features.
+For games with `sourceBrowser: true`, the source pane loads a standalone HTML page in an iframe instead of the built-in Inform 7 code viewer. Currently used by:
+- `zork1-v0` — ZIL source browser with custom syntax highlighting and annotation features
+- `dracula-v0` — BASIC source browser with annotation toggle
+- `sample` — Inform 7 source browser (standalone `source.html` page)
 
 ---
 
@@ -452,11 +458,12 @@ Compiles a project's `story.ni` (or an alternate source via `--source`) to a pla
 | `--source PATH` | Use this `story.ni` instead of the project's own (e.g., a frozen version snapshot) |
 | `--compile-only` | Skip the web player update step (`setup-web.sh` + `validate-web.sh`) |
 
-**Standard pipeline** (4 steps):
+**Standard pipeline** (4 steps + auto walkthrough):
 1. Inform 7 → Inform 6 (`inform7.exe -source story.ni -o story.i6`)
 2. Inform 6 → Glulx (`inform6.exe -w -G story.i6 <name>.ulx`)
 3. Clean intermediates (`story.i6`)
-4. Update web player (`setup-web.sh` → base64-encode `.ulx` into `.ulx.js`) — skipped with `--compile-only`
+4. Update web player (`setup-web.sh` with `--walkthrough` → base64-encode `.ulx` into `.ulx.js`, generate `play.html` and `walkthrough.html`) — skipped with `--compile-only`
+5. Auto walkthrough: if `tests/inform7/walkthrough.txt` exists and `glulxe.exe` is available, runs the walkthrough through the interpreter, generates the annotated guide, and copies all files to the web root
 
 **Sound pipeline** (`--sound`, 6 steps):
 1. Inform 7 → Inform 6
@@ -503,8 +510,42 @@ Bootstraps a Parchment web player for any project:
 1. Creates `<out>/lib/parchment/` with all 12 Parchment library files
 2. Base64-encodes the game binary into a `.ulx.js` or `.gblorb.js` wrapper
 3. Generates `play.html` from the template with cache-busting `?v=<timestamp>` params
+4. Generates `walkthrough.html` from `walkthrough-template.html` (via `--walkthrough` flag, passed automatically by `compile.sh`)
 
 Accepts `--template` for project-specific HTML templates (overrides the default `tools/web/play-template.html`).
+
+### 10.3a Page Generation (`generate-pages.sh`)
+
+```
+bash /c/code/ifhub/tools/web/generate-pages.sh \
+    --title <title> --meta <subtitle> --description <text> --out <path>
+```
+
+Generates project web pages from templates:
+- `index.html` — Landing page with Play/Source/Walkthrough links (from `landing-template.html`)
+- `source.html` — Syntax-highlighted source browser with sidebar nav (from `source-template.html`)
+
+Skips files that already exist unless `--force` is passed.
+
+### 10.3b Command Extraction (`extract-commands.sh`)
+
+```
+bash /c/code/ifhub/tools/extract-commands.sh transcript.txt [-o output.txt]
+bash /c/code/ifhub/tools/extract-commands.sh --from-source story.ni [-o output.txt]
+```
+
+Extracts walkthrough commands from two sources:
+- **TRANSCRIPT files** — Lines starting with `>` (the game prompt). Filters out meta-commands (`TRANSCRIPT`, `QUIT`, etc.).
+- **Inform 7 source** — Parses `Test me with "..."` definitions and recursively expands references to sub-tests (e.g., `test first / test second` → expanded individual commands).
+
+### 10.3c Hub Registration (`register-game.sh`)
+
+```
+bash /c/code/ifhub/tools/register-game.sh \
+    --name <id> --title <title> [--meta <sub>] [--description <text>] [--sound blorb]
+```
+
+Adds entries to `ifhub/games.json` and `ifhub/cards.json` via Python JSON manipulation. Skips if the game ID already exists. Prints a reminder to run `publish.sh`.
 
 ### 10.4 Project Scaffolding (`new-project.sh`)
 
@@ -569,7 +610,7 @@ bash /c/code/ifhub/tools/publish.sh <game-name> ["commit message"]
 
 Publishes a project to GitHub Pages at `johnesco.github.io/<game-name>/`.
 
-**First run:** Initializes a git repo, creates a GitHub repo via `gh`, pushes, and enables GitHub Pages with workflow-based deployment.
+**First run:** Initializes a git repo, creates a GitHub repo via `gh`, pushes, and enables GitHub Pages. Auto-detects deployment mode: uses legacy branch deployment for flat-layout projects (no workflow file), or workflow-based deployment for projects with `.github/workflows/deploy-pages.yml`.
 
 **Subsequent runs:** Stages all changes, commits, and pushes to trigger redeployment.
 
