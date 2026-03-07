@@ -23,6 +23,7 @@ C:\code\ifhub\
 │   ├── activities-phrases.md ← Activities, phrase definitions, control flow, decisions
 │   ├── sound.md           ← Sound architecture: native blorb, decision record
 │   ├── sound-overlay/     ← Archived JS overlay system (replaced by native blorb)
+│   ├── css-overlay.md     ← CSS overlay system: three-tier theming architecture for play.html
 │   ├── glk-styling.md    ← Glk text styles, colors, images, windows, hyperlinks (Emglken/AsyncGlk stack)
 │   ├── parchment-troubleshooting.md ← Web player errors, sound gotchas, binary format
 │   └── windows-pitfalls.md ← Git Bash grep/subshell issues, MSYS2 interpreter build
@@ -44,10 +45,15 @@ C:\code\ifhub\
 │   ├── dev-server.py      ← Multi-root dev server (serves hub + all games at production URLs)
 │   ├── validate-web.sh    ← Post-build web player validation (7 checks)
 │   ├── generate-blurb.sh  ← Generate .blurb from story.ni sound declarations
+│   ├── extract-commands.sh ← Extract walkthrough commands from transcript or story.ni
+│   ├── register-game.sh   ← Register a game in IF Hub (adds to games.json + cards.json)
+│   ├── publish.sh         ← Publish a project to its own GitHub Pages repo
 │   └── web/               ← Web player setup
 │       ├── setup-web.sh        ← Bootstrap a Parchment web player for any project
+│       ├── generate-pages.sh   ← Generate index.html + source.html from templates
 │       ├── play-template.html  ← HTML template (__TITLE__, __STORY_FILE__ placeholders)
-│       ├── landing-template.html ← Landing page scaffold (ifhub:* meta tags + __PLACEHOLDER__ values)
+│       ├── landing-template.html ← Landing page template (ifhub:* meta tags + __PLACEHOLDER__ values)
+│       ├── source-template.html  ← Source browser template (syntax-highlighted viewer)
 │       └── parchment/          ← Shared Parchment 2025.1 library (copy, don't symlink)
 │           ├── jquery.min.js   ← jQuery
 │           ├── main.js         ← Parchment game loader
@@ -70,10 +76,11 @@ C:\code\ifhub\
 │       ├── lib/parchment/ ← Parchment engine + latest game binary
 │       └── index.html     ← Landing page (+ play.html, source.html, etc.)
 └── ifhub/                 ← IF Hub web player
-    ├── index.html         ← Landing page (reads cards.json, renders cards)
+    ├── index.html         ← Landing page (reads cards.json, renders cards with Source/Walkthrough links)
     ├── app.html           ← Split-pane player (game + source viewer)
     ├── play.html          ← Shared player page (standalone use)
-    ├── games.json         ← Game registry (titles, URLs, sound flags)
+    ├── importing.html     ← Guide for adding new games to the hub
+    ├── games.json         ← Game registry (titles, URLs, sound flags, sourceBrowser)
     ├── cards.json         ← Card metadata for landing page
     └── lib/parchment/     ← Hub's OWN Parchment copy (separate from tools/web/)
 ```
@@ -342,9 +349,115 @@ python tools/dev-server.py [--port 8000]
 # Open http://127.0.0.1:8000/ifhub/app.html
 ```
 
+### CSS Overlay Theming
+
+Each game's `play.html` layers custom CSS on top of Parchment's base styles. Three tiers: Parchment base → static overlay (all projects) → dynamic mood system (zork1 v4, feverdream). See `reference/css-overlay.md` for full architecture.
+
 ### Troubleshooting
 
 For Parchment errors ("Error loading story 200", "Error loading engine: 404"), sound gotchas, `.ulx.js` format issues, and MutationObserver quirks, see `reference/parchment-troubleshooting.md`.
+
+## New Game Publish Flow
+
+End-to-end steps to go from a `story.ni` file to a fully deployed game on IF Hub. Every step uses a script — no manual file creation.
+
+### Step 1: Write the game
+
+Create `projects/<name>/story.ni` (or use an existing source file). The first line must be `"Title" by "Author"`. No colons in the title (Windows filename limitation — use dashes instead).
+
+### Step 2: First compile
+
+```bash
+bash /c/code/ifhub/tools/compile.sh <name>
+```
+
+Generates: `<name>.ulx`, `play.html`, `walkthrough.html`, Parchment libraries. If `tests/inform7/walkthrough.txt` exists, also generates the transcript and guide automatically.
+
+### Step 3: Create the walkthrough
+
+Play the game and record a transcript using one of these methods:
+
+**A. From a TRANSCRIPT file** (preferred — works in Parchment, IDE, or any interpreter):
+1. Play the game and type `TRANSCRIPT` at the prompt to start recording
+2. Play through to completion
+3. Save/download the transcript file
+4. Extract commands:
+```bash
+mkdir -p projects/<name>/tests/inform7
+bash /c/code/ifhub/tools/extract-commands.sh transcript.txt \
+    -o projects/<name>/tests/inform7/walkthrough.txt
+```
+
+**B. From `Test me` in source** (for games with built-in test commands):
+```bash
+mkdir -p projects/<name>/tests/inform7
+bash /c/code/ifhub/tools/extract-commands.sh --from-source projects/<name>/story.ni \
+    -o projects/<name>/tests/inform7/walkthrough.txt
+```
+
+**C. Manual** (for short games): Write commands directly into `projects/<name>/tests/inform7/walkthrough.txt`, one per line.
+
+### Step 4: Recompile (with walkthrough)
+
+```bash
+bash /c/code/ifhub/tools/compile.sh <name>
+```
+
+Now that `tests/inform7/walkthrough.txt` exists, compile.sh automatically:
+- Runs the commands through `glulxe.exe` → generates `walkthrough_output.txt`
+- Runs `generate-guide.py` → generates `walkthrough-guide.txt`
+- Copies all walkthrough files to the web root
+
+### Step 5: Generate landing page + source browser
+
+```bash
+bash /c/code/ifhub/tools/web/generate-pages.sh \
+    --title "Game Title" \
+    --meta "Subtitle" \
+    --description "Game description" \
+    --out projects/<name>
+```
+
+Generates: `index.html` (landing page with Play/Source/Walkthrough links), `source.html` (syntax-highlighted source browser).
+
+### Step 6: Register in IF Hub
+
+```bash
+bash /c/code/ifhub/tools/register-game.sh \
+    --name <name> \
+    --title "Game Title" \
+    --meta "Subtitle" \
+    --description "Game description"
+```
+
+Adds entries to `ifhub/games.json` and `ifhub/cards.json`. Prints a reminder to run `publish.sh`.
+
+### Step 7: Publish to GitHub Pages
+
+```bash
+bash /c/code/ifhub/tools/publish.sh <name>
+```
+
+First run: creates `Johnesco/<name>` GitHub repo, pushes all files, enables Pages (legacy deployment for flat layout, workflow for `web/` layout). Subsequent runs: commits and pushes changes.
+
+### Step 8: Commit hub changes
+
+```bash
+cd /c/code/ifhub
+git add ifhub/games.json ifhub/cards.json projects/<name>/
+git commit -m "Add <name> to IF Hub"
+git push
+```
+
+### Quick reference
+
+| Step | Script | What it produces |
+|------|--------|-----------------|
+| Compile | `tools/compile.sh` | `.ulx`, `play.html`, `walkthrough.html`, transcript, guide |
+| Extract commands | `tools/extract-commands.sh` | `walkthrough.txt` from transcript or source |
+| Generate pages | `tools/web/generate-pages.sh` | `index.html`, `source.html` |
+| Register | `tools/register-game.sh` | `games.json` + `cards.json` entries |
+| Publish | `tools/publish.sh` | GitHub repo + Pages deployment |
 
 ## Projects
 
@@ -360,16 +473,50 @@ Each Inform 7 project lives under `C:\code\ifhub\projects\`.
 
 Projects with multiple playable milestones store frozen snapshots in `vN/` directories at the project root (flat layout). Tools: `snapshot.sh` (freeze/update), `build-site.sh` (assemble `_site/` for local preview). GitHub Actions assembles `_site/` from site-level files + version directories. The `_site/` directory is gitignored. `snapshot.sh --update` recompiles from the version's own frozen `story.ni` (never overwrites it) and auto-detects `.gblorb` vs `.ulx` binary type.
 
+### Standard Project Layout
+
+Every project follows this baseline structure. Each has a `CLAUDE.md` with project-specific details.
+
+```
+projects/<game>/
+├── CLAUDE.md              ← Project guide (points to hub for shared docs)
+├── story.ni               ← Source of truth (Inform 7 source)
+├── <game>.ulx             ← Compiled Glulx binary (gitignored)
+├── index.html             ← Landing page
+├── play.html              ← Parchment player (CSS overlay theming)
+├── source.html            ← Source browser
+├── walkthrough.html       ← Walkthrough viewer
+├── walkthrough.txt        ← Raw walkthrough commands (copy from tests/)
+├── walkthrough-guide.txt  ← Annotated guide (copy from tests/)
+├── walkthrough_output.txt ← Game transcript (copy from tests/)
+├── lib/parchment/         ← Parchment engine + <game>.ulx.js (base64 binary)
+└── tests/
+    ├── project.conf       ← Project-specific test + pipeline configuration
+    ├── run-walkthrough.sh ← Thin wrapper → tools/testing/run-walkthrough.sh
+    ├── find-seeds.sh      ← Thin wrapper → tools/testing/find-seeds.sh
+    ├── seeds.conf         ← Golden seeds for deterministic testing
+    └── inform7/           ← Canonical walkthrough data
+        ├── walkthrough.txt
+        ├── walkthrough-guide.txt
+        └── walkthrough_output.txt
+```
+
+Optional additions per project:
+- `Sounds/` + `<game>.gblorb` + `<game>.blurb` — sound projects (zork1, feverdream)
+- `v0/`, `v1/`, etc. — versioned projects with frozen snapshots (zork1, dracula)
+- `run-tests.sh` + `<game>.regtest` — projects with regression test suites (zork1, sample)
+- `README.md` — public-facing description (zork1, dracula)
+
 ### Known Projects
 
-| Project | Source | What the repo holds |
-|---|---|---|
-| zork1 | `projects/zork1/story.ni` | Source, tests, web site, versions v0–v4, GitHub Pages |
-| dracula | `projects/dracula/story.ni` | Source, BASIC reference, web site, GitHub Pages |
-| feverdream | `projects/feverdream/story.ni` | Source, tests, web player, native blorb sound, GitHub Pages |
-| sample | `projects/sample/story.ni` | Source, tests, web player (local-only, no git) |
+| Project | Sound | Versions | CSS Effects | Tests |
+|---|---|---|---|---|
+| zork1 | blorb (v3+) | v0–v4 | Mood palettes, CRT, tree, egg, sword (v4) | walkthrough, regtest, scenarios |
+| dracula | No | v0 (BASIC) | Static dark theme | walkthrough |
+| feverdream | blorb | None | Mood palettes, monitor, glass, fungus, spray | walkthrough (scoreless) |
+| sample | No | None | Static dark theme | walkthrough, regtest |
 
-Zork1 has 5 versions (v0–v4): v0 is original ZIL/Z-machine, v1–v2 are Inform 7 ports, v3–v4 add native blorb sound. See `projects/zork1/` for details.
+All projects have `CLAUDE.md`, `project.conf`, and delegate to the shared testing framework. See `reference/css-overlay.md` for the play.html theming architecture.
 
 ## Key Rules for Generating story.ni Files
 
