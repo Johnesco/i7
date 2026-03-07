@@ -68,5 +68,14 @@
     "description": "A recreation of the classic Babel Fish puzzle from The Hitchhiker's Guide to the Galaxy text adventure. Place items in the right spots, then push the button to catch the fish.",
     "playUrl": "/babel/play.html",
     "landingUrl": "/babel/"
+  },
+  {
+    "id": "dracula2",
+    "base": "dracula2",
+    "title": "Dracula2",
+    "meta": "An Interactive Fiction",
+    "description": "An interactive fiction game.",
+    "playUrl": "/dracula2/play.html",
+    "landingUrl": "/dracula2/"
   }
 ]
