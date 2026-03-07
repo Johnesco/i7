@@ -92,15 +92,5 @@
     "landingUrl": "/babel/",
     "sourceBrowser": true,
     "sourceUrl": "/babel/source.html"
-  },
-  {
-    "id": "dracula2",
-    "title": "Dracula2",
-    "sourceLabel": "dracula2.ni",
-    "playUrl": "/dracula2/play.html",
-    "walkthroughUrl": "/dracula2/walkthrough.html",
-    "landingUrl": "/dracula2/",
-    "sourceBrowser": true,
-    "sourceUrl": "/dracula2/source.html"
   }
 ]
