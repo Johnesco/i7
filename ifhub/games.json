@@ -92,5 +92,15 @@
     "walkthroughUrl": "/sample/walkthrough.html",
     "sourceUrl": "/sample/source.html",
     "landingUrl": "/sample/"
+  },
+  {
+    "id": "babel",
+    "title": "Babel Fish Puzzle Permutation 2013 - An Homage To Adams and Meretzky",
+    "sourceLabel": "babel.ni",
+    "playUrl": "/babel/play.html",
+    "walkthroughUrl": "/babel/walkthrough.html",
+    "landingUrl": "/babel/",
+    "sourceBrowser": true,
+    "sourceUrl": "/babel/source.html"
   }
 ]

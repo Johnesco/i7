@@ -5,6 +5,7 @@
     "title": "Zork I - The Great Underground Empire",
     "meta": "Infocom (translated to Inform 7)",
     "description": "A full translation of Infocom's classic adventure game from the original ZIL source code to Inform 7. 110 rooms, 19 treasures, a roaming thief, and every puzzle faithfully reproduced. Multiple versioned milestones track the evolution from raw translation to bug-fixed, audio-enhanced experience.",
+    "primaryLabel": "v4 — Modern IF",
     "sound": "blorb",
     "playUrl": "/zork1/v4/play.html",
     "landingUrl": "/zork1/",
@@ -38,6 +39,7 @@
     "title": "Dracula's Castle",
     "meta": "An Interactive Adventure",
     "description": "Explore Dracula's Castle and uncover its dark secret before midnight strikes. A horror-themed adventure written in Inform 7.",
+    "primaryLabel": "Inform 7",
     "playUrl": "/dracula/play.html",
     "landingUrl": "/dracula/",
     "versions": [
@@ -66,5 +68,14 @@
     "description": "A practice project for learning Inform 7 — small, self-contained, and useful for testing the toolchain.",
     "playUrl": "/sample/play.html",
     "landingUrl": "/sample/"
+  },
+  {
+    "id": "babel",
+    "base": "babel",
+    "title": "Babel Fish Puzzle Permutation 2013 - An Homage To Adams and Meretzky",
+    "meta": "An Homage To Adams and Meretzky",
+    "description": "A recreation of the classic Babel Fish puzzle from The Hitchhiker's Guide to the Galaxy text adventure. Place items in the right spots, then push the button to catch the fish.",
+    "playUrl": "/babel/play.html",
+    "landingUrl": "/babel/"
   }
 ]
