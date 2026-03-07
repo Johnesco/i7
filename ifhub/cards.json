@@ -77,5 +77,14 @@
     "description": "A recreation of the classic Babel Fish puzzle from The Hitchhiker's Guide to the Galaxy text adventure. Place items in the right spots, then push the button to catch the fish.",
     "playUrl": "/babel/play.html",
     "landingUrl": "/babel/"
+  },
+  {
+    "id": "disenchantment12",
+    "base": "disenchantment12",
+    "title": "Disenchantment Bay",
+    "meta": "An Interactive Fiction",
+    "description": "Navigate a charter boat in Yakutat Bay, Alaska. Barter with the captain, scoop glacier ice, and chill a Coke to earn your fishing rods.",
+    "playUrl": "/disenchantment12/play.html",
+    "landingUrl": "/disenchantment12/"
   }
 ]

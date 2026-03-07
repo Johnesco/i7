@@ -55,20 +55,44 @@ extract_from_transcript() {
 }
 
 extract_from_source() {
-    # Match:  Test me with "cmd1 / cmd2 / cmd3".
-    # Also:   Test foo with "cmd1 / cmd2".
-    # Extracts the quoted command list and splits on " / "
+    # Parse Inform 7 "Test ... with ..." definitions.
+    # Starts from "Test me" and expands references to sub-tests recursively.
+    # e.g. Test me with "test first / test second".
+    #      Test first with "n / take key".
+    # → outputs: n / take key / (commands from test second)
     python3 -c "
 import re, sys
 
 text = open(sys.argv[1], 'r', encoding='utf-8').read()
 
-# Find all Test ... with \"...\" patterns
-for m in re.finditer(r'Test\s+\w+\s+with\s+\"([^\"]+)\"', text, re.IGNORECASE):
-    commands = m.group(1)
-    for cmd in commands.split(' / '):
-        cmd = cmd.strip()
-        if cmd:
+# Build lookup: test name → list of commands
+tests = {}
+for m in re.finditer(r'Test\s+(\w+)\s+with\s+\"([^\"]+)\"', text, re.IGNORECASE):
+    name = m.group(1).lower()
+    cmds = [c.strip() for c in m.group(2).split(' / ') if c.strip()]
+    tests[name] = cmds
+
+def expand(cmds, seen=None):
+    if seen is None:
+        seen = set()
+    result = []
+    for cmd in cmds:
+        # Check if this command is 'test <name>' referencing another test
+        ref = re.match(r'^test\s+(\w+)$', cmd, re.IGNORECASE)
+        if ref and ref.group(1).lower() in tests and ref.group(1).lower() not in seen:
+            seen.add(ref.group(1).lower())
+            result.extend(expand(tests[ref.group(1).lower()], seen))
+        else:
+            result.append(cmd)
+    return result
+
+# Start from 'Test me', fall back to all tests in order
+if 'me' in tests:
+    for cmd in expand(tests['me']):
+        print(cmd)
+else:
+    for name in tests:
+        for cmd in expand(tests[name]):
             print(cmd)
 " "$1"
 }
