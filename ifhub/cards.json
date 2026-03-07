@@ -77,5 +77,14 @@
     "description": "Navigate a charter boat in Yakutat Bay, Alaska. Barter with the captain, scoop glacier ice, and chill a Coke to earn your fishing rods.",
     "playUrl": "/disenchantment12/play.html",
     "landingUrl": "/disenchantment12/"
+  },
+  {
+    "id": "sample",
+    "base": "sample",
+    "title": "Sample",
+    "meta": "An Interactive Fiction",
+    "description": "An interactive fiction game.",
+    "playUrl": "/sample/play.html",
+    "landingUrl": "/sample/"
   }
 ]
