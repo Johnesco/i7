@@ -172,6 +172,30 @@ if [[ "$COMPILE_ONLY" != true ]]; then
             $TEMPLATE_FLAG
     fi
 
+    # Generate walkthrough transcript if commands exist and interpreter is available
+    WALK_CMDS="$PROJECT_DIR/tests/inform7/walkthrough.txt"
+    WALK_OUT="$PROJECT_DIR/tests/inform7/walkthrough_output.txt"
+    WALK_GUIDE="$PROJECT_DIR/tests/inform7/walkthrough-guide.txt"
+    GLULXE="$SCRIPT_DIR/interpreters/glulxe.exe"
+    if [[ -f "$WALK_CMDS" && -x "$GLULXE" ]]; then
+        echo ""
+        echo "Generating walkthrough transcript..."
+        mkdir -p "$PROJECT_DIR/tests/inform7"
+        "$GLULXE" -q "$PROJECT_DIR/$NAME.ulx" < "$WALK_CMDS" > "$WALK_OUT" 2>/dev/null || true
+        if [[ -s "$WALK_OUT" ]]; then
+            echo "  Transcript: $WALK_OUT"
+            # Generate annotated guide
+            python "$SCRIPT_DIR/testing/generate-guide.py" \
+                --walkthrough "$WALK_CMDS" \
+                --transcript "$WALK_OUT" \
+                -o "$WALK_GUIDE" 2>/dev/null || true
+            # Copy to project root for web serving
+            cp "$WALK_OUT" "$WEB_DIR/"
+            cp "$WALK_CMDS" "$WEB_DIR/"
+            [[ -f "$WALK_GUIDE" ]] && cp "$WALK_GUIDE" "$WEB_DIR/"
+        fi
+    fi
+
     # Validate web player
     echo ""
     echo "Validating web player..."
