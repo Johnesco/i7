@@ -161,12 +161,14 @@ if [[ "$COMPILE_ONLY" != true ]]; then
             --title "$GAME_TITLE" \
             --blorb "$PROJECT_DIR/$NAME.gblorb" \
             --out "$WEB_DIR" \
+            --walkthrough \
             $TEMPLATE_FLAG
     else
         bash "$SCRIPT_DIR/web/setup-web.sh" \
             --title "$GAME_TITLE" \
             --ulx "$PROJECT_DIR/$NAME.ulx" \
             --out "$WEB_DIR" \
+            --walkthrough \
             $TEMPLATE_FLAG
     fi
 

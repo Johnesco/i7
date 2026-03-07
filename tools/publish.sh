@@ -28,8 +28,8 @@ NAME="$1"
 MSG="${2:-Update $NAME}"
 PROJECT_DIR="$I7_ROOT/projects/$NAME"
 
-if [[ ! -d "$PROJECT_DIR/web" ]]; then
-    echo "ERROR: web/ directory not found. Run compile.sh first." >&2
+if [[ ! -f "$PROJECT_DIR/play.html" && ! -f "$PROJECT_DIR/web/play.html" ]]; then
+    echo "ERROR: play.html not found. Run compile.sh first." >&2
     exit 1
 fi
 
