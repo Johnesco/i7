@@ -114,26 +114,6 @@
     "sourceUrl": "/disenchantment12/source.html"
   },
   {
-    "id": "if-pipeline-test",
-    "title": "If Pipeline Test",
-    "sourceLabel": "if-pipeline-test.ni",
-    "playUrl": "/if-pipeline-test/play.html",
-    "walkthroughUrl": "/if-pipeline-test/walkthrough.html",
-    "landingUrl": "/if-pipeline-test/",
-    "sourceBrowser": true,
-    "sourceUrl": "/if-pipeline-test/source.html"
-  },
-  {
-    "id": "if-pipeline-test2",
-    "title": "If Pipeline Test2",
-    "sourceLabel": "if-pipeline-test2.ni",
-    "playUrl": "/if-pipeline-test2/play.html",
-    "walkthroughUrl": "/if-pipeline-test2/walkthrough.html",
-    "landingUrl": "/if-pipeline-test2/",
-    "sourceBrowser": true,
-    "sourceUrl": "/if-pipeline-test2/source.html"
-  },
-  {
     "id": "if-pipeline-test3",
     "title": "If Pipeline Test3",
     "sourceLabel": "if-pipeline-test3.ni",
