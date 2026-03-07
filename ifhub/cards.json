@@ -68,14 +68,5 @@
     "description": "A recreation of the classic Babel Fish puzzle from The Hitchhiker's Guide to the Galaxy text adventure. Place items in the right spots, then push the button to catch the fish.",
     "playUrl": "/babel/play.html",
     "landingUrl": "/babel/"
-  },
-  {
-    "id": "sample",
-    "base": "sample",
-    "title": "Sample",
-    "meta": "An Interactive Fiction",
-    "description": "An interactive fiction game.",
-    "playUrl": "/sample/play.html",
-    "landingUrl": "/sample/"
   }
 ]
