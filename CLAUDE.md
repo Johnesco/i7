@@ -9,6 +9,9 @@ Any project under `C:\code\` that needs to generate, edit, or build Inform 7 sou
 C:\code\ifhub\
 ├── CLAUDE.md              ← You are here
 ├── .claude/skills/
+│   ├── bash-pitfalls/     ← Triggered on *.sh edits (legacy bash scripts)
+│   ├── kill-servers/      ← Kill dev/dashboard servers
+│   ├── serve/             ← Start dev-server or dashboard
 │   └── web-player-debug/  ← Triggered on play.html, *.ulx.js, parchment/** edits
 ├── reference/
 │   ├── syntax-guide.md    ← Core Inform 7 syntax and structure
@@ -24,7 +27,8 @@ C:\code\ifhub\
 │   ├── sound-overlay/     ← Archived JS overlay system (replaced by native blorb)
 │   ├── css-overlay.md     ← CSS overlay system: three-tier theming architecture for play.html
 │   ├── glk-styling.md    ← Glk text styles, colors, images, windows, hyperlinks (Emglken/AsyncGlk stack)
-│   └── parchment-troubleshooting.md ← Web player errors, sound gotchas, binary format
+│   ├── parchment-troubleshooting.md ← Web player errors, sound gotchas, binary format
+│   └── windows-pitfalls.md ← Git Bash grep/subshell issues, MSYS2 interpreter build
 ├── tools/
 │   ├── lib/               ← Shared Python library modules
 │   │   ├── paths.py            ← Path resolution, compiler paths, project dirs
@@ -40,6 +44,7 @@ C:\code\ifhub\
 │   ├── pipeline.py        ← Unified build pipeline orchestrator
 │   ├── publish.py         ← Publish a project to its own GitHub Pages repo
 │   ├── run.py             ← Interactive pipeline runner (Python CLI with arrow-key menus)
+│   ├── dashboard.py       ← Flask web GUI for build pipeline (http://127.0.0.1:5000)
 │   ├── regtest.py         ← Shared RegTest runner (used by all project test suites)
 │   ├── validate_web.py    ← Post-build web player validation (7 checks)
 │   ├── generate_blurb.py  ← Generate .blurb from story.ni sound declarations
