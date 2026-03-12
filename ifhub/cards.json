@@ -158,5 +158,14 @@
     "description": "An interactive fiction game.",
     "playUrl": "/seasons/play.html",
     "landingUrl": "/seasons/"
+  },
+  {
+    "id": "ink-story",
+    "base": "ink-story",
+    "title": "Ink Story",
+    "meta": "An Interactive Fiction",
+    "description": "An interactive fiction game.",
+    "playUrl": "/ink-story/play.html",
+    "landingUrl": "/ink-story/"
   }
 ]

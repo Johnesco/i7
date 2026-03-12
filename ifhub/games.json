@@ -192,5 +192,15 @@
     "landingUrl": "/seasons/",
     "sourceBrowser": true,
     "sourceUrl": "/seasons/source.html"
+  },
+  {
+    "id": "ink-story",
+    "title": "Ink Story",
+    "sourceLabel": "ink-story.ni",
+    "playUrl": "/ink-story/play.html",
+    "walkthroughUrl": "/ink-story/walkthrough.html",
+    "landingUrl": "/ink-story/",
+    "sourceBrowser": true,
+    "sourceUrl": "/ink-story/source.html"
   }
 ]
