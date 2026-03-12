@@ -46,6 +46,8 @@ PUBLISH_PY = os.path.join(SCRIPT_DIR, "publish.py")
 PIPELINE_PY = os.path.join(SCRIPT_DIR, "pipeline.py")
 NEW_PROJECT_PY = os.path.join(SCRIPT_DIR, "new_project.py")
 PUSH_HUB_PY = os.path.join(SCRIPT_DIR, "push_hub.py")
+SETUP_BASIC_PY = os.path.join(SCRIPT_DIR, "web", "setup_basic.py")
+SETUP_INK_PY = os.path.join(SCRIPT_DIR, "web", "setup_ink.py")
 TESTING_DIR = os.path.join(SCRIPT_DIR, "testing")
 
 # ---------------------------------------------------------------------------
@@ -67,15 +69,18 @@ def py_cmd(*args):
 class ProjectInfo:
     name: str
     dir: str
+    engine: str = "unknown"        # inform7, wwwbasic, qbjc, applesoft, jsdos, twine, unknown
+    source_file: str = ""          # primary source filename (story.ni, game.bas, etc.)
     sound: bool = False
-    versioned: bool = False
-    current_version: str = ""
     hub_id: str = ""
+    has_source: bool = False
     has_walkthrough: bool = False
     has_regtest: bool = False
     has_test_me: bool = False
     has_play_html: bool = False
-    has_ulx: bool = False
+    has_binary: bool = False       # .ulx, .gblorb, .js compiled output, etc.
+    has_index: bool = False
+    has_source_html: bool = False
     has_git: bool = False
     registered: bool = False
 
@@ -90,6 +95,54 @@ def load_registered_ids():
         return set()
 
 
+def _detect_engine(project_dir, conf_fields):
+    """Detect the engine type for a project.
+
+    Priority: explicit ENGINE= in project.conf > filesystem heuristics.
+    """
+    explicit = conf_fields.get("ENGINE", "").lower()
+    if explicit:
+        return explicit
+
+    # Filesystem heuristics
+    if os.path.isfile(os.path.join(project_dir, "story.ni")):
+        return "inform7"
+
+    files = os.listdir(project_dir)
+    bas_files = [f for f in files if f.lower().endswith(".bas")]
+    if bas_files:
+        return "basic"  # generic — project.conf should specify wwwbasic/qbjc/applesoft
+    if any(f == "wwwbasic.js" for f in files):
+        return "wwwbasic"
+    if any(f.lower().endswith(".jsdos") for f in files):
+        return "jsdos"
+    if any(f.lower().endswith((".tw", ".twee")) for f in files):
+        return "twine"
+    if any(f.lower().endswith(".ink") for f in files):
+        return "ink"
+
+    return "unknown"
+
+
+def _detect_source_file(project_dir, engine, conf_fields):
+    """Find the primary source file for a project."""
+    explicit = conf_fields.get("SOURCE", "")
+    if explicit:
+        return explicit
+
+    if engine == "inform7":
+        return "story.ni"
+
+    # Look for common source files
+    files = os.listdir(project_dir)
+    for ext in (".bas", ".tw", ".twee", ".ink"):
+        for f in sorted(files):
+            if f.lower().endswith(ext):
+                return f
+
+    return ""
+
+
 def load_projects():
     registered_ids = load_registered_ids()
     projects = []
@@ -97,35 +150,30 @@ def load_projects():
         project_dir = os.path.join(PROJECTS_DIR, name)
         if not os.path.isdir(project_dir):
             continue
-        story_path = os.path.join(project_dir, "story.ni")
-        if not os.path.isfile(story_path):
-            continue
 
+        # Parse config fields (both PIPELINE_* and general KEY=VALUE)
         conf_path = os.path.join(project_dir, "tests", "project.conf")
         fields = {}
         try:
             with open(conf_path, "r", encoding="utf-8") as f:
                 for line in f:
                     m = re.match(
-                        r'^(PIPELINE_\w+)=["\']?(.*?)["\']?\s*$', line.strip()
+                        r'^(\w+)=["\']?(.*?)["\']?\s*$', line.strip()
                     )
                     if m:
                         fields[m.group(1)] = m.group(2)
         except OSError:
             pass
 
+        engine = _detect_engine(project_dir, fields)
+        source_file = _detect_source_file(project_dir, engine, fields)
+        source_path = os.path.join(project_dir, source_file) if source_file else ""
+        has_source = bool(source_file) and os.path.isfile(source_path)
+        has_play = os.path.isfile(os.path.join(project_dir, "play.html"))
+
         sound = fields.get("PIPELINE_SOUND", "").lower() == "true"
         if not sound and os.path.isdir(os.path.join(project_dir, "Sounds")):
             sound = True
-
-        versioned = fields.get("PIPELINE_VERSIONED", "").lower() == "true"
-        if not versioned:
-            for entry in os.listdir(project_dir):
-                if re.match(r"^v\d+$", entry) and os.path.isdir(
-                    os.path.join(project_dir, entry)
-                ):
-                    versioned = True
-                    break
 
         has_walkthrough = os.path.isfile(
             os.path.join(project_dir, "tests", "inform7", "walkthrough.txt")
@@ -134,38 +182,45 @@ def load_projects():
             os.path.join(project_dir, "tests", "*.regtest")
         ))
 
+        # Test me detection (Inform 7 only)
         has_test_me = False
-        try:
-            with open(story_path, "r", encoding="utf-8") as f:
-                has_test_me = bool(
-                    re.search(r"Test\s+\w+\s+with", f.read(), re.IGNORECASE)
-                )
-        except OSError:
-            pass
+        if engine == "inform7" and has_source:
+            try:
+                with open(source_path, "r", encoding="utf-8") as f:
+                    has_test_me = bool(
+                        re.search(r"Test\s+\w+\s+with", f.read(), re.IGNORECASE)
+                    )
+            except OSError:
+                pass
 
-        has_play = os.path.isfile(
-            os.path.join(project_dir, "play.html")
-        ) or os.path.isfile(os.path.join(project_dir, "web", "play.html"))
-
-        has_ulx = any(
-            f.endswith((".ulx", ".gblorb"))
-            for f in os.listdir(project_dir)
-            if os.path.isfile(os.path.join(project_dir, f))
-        )
+        # Detect compiled binaries (engine-appropriate)
+        dir_files = os.listdir(project_dir)
+        if engine == "inform7":
+            has_binary = any(
+                f.endswith((".ulx", ".gblorb"))
+                for f in dir_files
+                if os.path.isfile(os.path.join(project_dir, f))
+            )
+        else:
+            # For non-I7: play.html IS the compiled output, or look for .js bundles
+            has_binary = has_play
 
         projects.append(
             ProjectInfo(
                 name=name,
                 dir=project_dir,
+                engine=engine,
+                source_file=source_file,
                 sound=sound,
-                versioned=versioned,
-                current_version=fields.get("PIPELINE_CURRENT_VERSION", ""),
                 hub_id=fields.get("PIPELINE_HUB_ID", name),
+                has_source=has_source,
                 has_walkthrough=has_walkthrough,
                 has_regtest=has_regtest,
                 has_test_me=has_test_me,
                 has_play_html=has_play,
-                has_ulx=has_ulx,
+                has_binary=has_binary,
+                has_index=os.path.isfile(os.path.join(project_dir, "index.html")),
+                has_source_html=os.path.isfile(os.path.join(project_dir, "source.html")),
                 has_git=os.path.isdir(os.path.join(project_dir, ".git")),
                 registered=name in registered_ids
                     or fields.get("PIPELINE_HUB_ID", "") in registered_ids
@@ -304,84 +359,116 @@ def run_job(job_id, commands):
         job.status = "done"
 
 
-def build_commands(task, project, data):
-    """Build command list for a task. Returns list or error string."""
+PIPELINE_STEPS = ["build", "test", "package", "register", "publish"]
+
+
+def _basic_compile_cmd(project):
+    """Build a setup_basic.py command for a BASIC engine project."""
+    engine = project.engine
+    if engine == "basic":
+        engine = "wwwbasic"  # default BASIC engine
+    title = project.name.replace("-", " ").replace("_", " ").title()
+    cmd = py_cmd(SETUP_BASIC_PY, "--engine", engine, "--title", title,
+                 "--out", project.dir)
+    if project.source_file:
+        source_path = os.path.join(project.dir, project.source_file)
+        if os.path.isfile(source_path):
+            cmd.extend(["--source", source_path])
+    return cmd
+
+
+def _step_commands(step, project, data):
+    """Return commands for a single pipeline step, or [] if not applicable."""
     game = project.name
-
+    engine = project.engine
+    is_i7 = engine == "inform7"
+    is_basic = engine in ("wwwbasic", "qbjc", "applesoft", "basic")
     force = data.get("force", False)
+    title = data.get("title", game.replace("-", " ").replace("_", " ").title())
+    meta = data.get("meta", "An Interactive Fiction")
+    desc = data.get("description", "An interactive fiction game.")
 
-    if task == "compile":
-        return [compile_cmd(game, project.sound, force=force)]
+    is_ink = engine == "ink"
 
-    if task == "build-test":
-        return [pipeline_cmd(game, "compile", "test", "--force")]
-
-    if task == "publish-new":
-        title = data.get("title", "")
-        meta = data.get("meta", "An Interactive Fiction")
-        desc = data.get("description", "An interactive fiction game.")
-        sound = data.get("sound", project.sound)
-
-        cmds = []
-        if project.has_test_me:
-            walk_dir = os.path.join(project.dir, "tests", "inform7")
-            walk_file = os.path.join(walk_dir, "walkthrough.txt")
-            os.makedirs(walk_dir, exist_ok=True)
-            cmds.append(
-                extract_commands_cmd(
+    if step == "build":
+        if is_i7:
+            cmds = []
+            # Auto-extract walkthrough from Test me blocks if none exists yet
+            if project.has_test_me and not project.has_walkthrough:
+                walk_dir = os.path.join(project.dir, "tests", "inform7")
+                walk_file = os.path.join(walk_dir, "walkthrough.txt")
+                os.makedirs(walk_dir, exist_ok=True)
+                cmds.append(extract_commands_cmd(
                     os.path.join(project.dir, "story.ni"), walk_file
-                )
-            )
+                ))
+            cmds.append(compile_cmd(game, data.get("sound", project.sound), force=force))
+            return cmds
+        if is_basic:
+            return [_basic_compile_cmd(project)]
+        if is_ink:
+            cmd = py_cmd(SETUP_INK_PY, "--title", title, "--out", project.dir)
+            if project.source_file:
+                cmd.extend(["--ink", os.path.join(project.dir, project.source_file)])
+            if force:
+                cmd.append("--force")
+            return [cmd]
+        return []
 
-        cmds.append(compile_cmd(game, sound, force=force))
-        cmds.append(generate_pages_cmd(title, meta, desc, project.dir, force=force))
-        sound_type = "blorb" if sound else ""
-        cmds.append(
-            register_game_cmd(game, title, meta, desc, sound_type)
-        )
-        cmds.append(publish_cmd(game, f"Initial publish: {title}"))
-        # Push hub changes (games.json + cards.json) so the live hub sees the new game
-        cmds.append(push_hub_cmd(game))
+    if step == "test":
+        if not is_i7:
+            return []
+        cmds = []
+        conf = os.path.join(project.dir, "tests", "project.conf")
+        if project.has_walkthrough:
+            cmds.append(py_cmd(os.path.join(TESTING_DIR, "run_walkthrough.py"), "--config", conf))
+        if project.has_regtest:
+            cmds.append(py_cmd(os.path.join(TESTING_DIR, "run_tests.py"), "--config", conf))
         return cmds
 
-    if task == "publish-update":
-        message = data.get("message", "")
-        return [publish_cmd(game, message)]
-
-    if task == "extract-walkthrough":
-        walk_dir = os.path.join(project.dir, "tests", "inform7")
-        walk_file = os.path.join(walk_dir, "walkthrough.txt")
-        os.makedirs(walk_dir, exist_ok=True)
-        return [
-            extract_commands_cmd(
-                os.path.join(project.dir, "story.ni"), walk_file
-            ),
-        ]
-
-    if task == "generate-pages":
-        title = data.get("title", "")
-        meta = data.get("meta", "An Interactive Fiction")
-        desc = data.get("description", "An interactive fiction game.")
+    if step == "package":
         return [generate_pages_cmd(title, meta, desc, project.dir, force=force)]
 
-    if task == "register":
-        title = data.get("title", "")
-        meta = data.get("meta", "An Interactive Fiction")
-        desc = data.get("description", "An interactive fiction game.")
-        sound = data.get("sound", project.sound)
-        sound_type = "blorb" if sound else ""
+    if step == "register":
+        sound_type = "blorb" if data.get("sound", project.sound) else ""
         return [register_game_cmd(game, title, meta, desc, sound_type), push_hub_cmd(game)]
 
+    if step == "publish":
+        message = data.get("message", "")
+        if not message:
+            message = f"Publish {game}"
+        return [publish_cmd(game, message)]
+
+    return []
+
+
+def build_commands(task, project, data):
+    """Build command list for a task. Returns list or error string."""
+    # Individual pipeline steps
+    if task in PIPELINE_STEPS:
+        cmds = _step_commands(task, project, data)
+        if not cmds:
+            return f"Step '{task}' not applicable for engine: {project.engine}"
+        return cmds
+
+    # Chain: run from a step through to the end
+    if task == "run-from":
+        from_step = data.get("from", "build")
+        try:
+            idx = PIPELINE_STEPS.index(from_step)
+        except ValueError:
+            return f"Unknown step: {from_step}"
+        cmds = []
+        for step in PIPELINE_STEPS[idx:]:
+            cmds.extend(_step_commands(step, project, data))
+        return cmds if cmds else f"No applicable steps from '{from_step}'"
+
+    # Special tasks (not pipeline steps)
+    if task == "publish-update":
+        message = data.get("message", "")
+        return [publish_cmd(project.name, message)]
+
     if task == "unregister":
-        return [unregister_game_cmd(game), push_hub_cmd(game)]
-
-    if task == "test-walkthrough":
-        conf = os.path.join(project.dir, "tests", "project.conf")
-        return [py_cmd(os.path.join(TESTING_DIR, "run_walkthrough.py"), "--config", conf)]
-
-    if task == "test-regtest":
-        conf = os.path.join(project.dir, "tests", "project.conf")
-        return [py_cmd(os.path.join(TESTING_DIR, "run_tests.py"), "--config", conf)]
+        return [unregister_game_cmd(project.name), push_hub_cmd(project.name)]
 
     return f"Unknown task: {task}"
 
@@ -410,15 +497,18 @@ def api_projects():
         [
             {
                 "name": p.name,
+                "engine": p.engine,
+                "sourceFile": p.source_file,
                 "sound": p.sound,
-                "versioned": p.versioned,
-                "currentVersion": p.current_version,
                 "hubId": p.hub_id,
+                "hasSource": p.has_source,
                 "hasWalkthrough": p.has_walkthrough,
                 "hasRegtest": p.has_regtest,
                 "hasTestMe": p.has_test_me,
                 "hasPlayHtml": p.has_play_html,
-                "hasUlx": p.has_ulx,
+                "hasBinary": p.has_binary,
+                "hasIndex": p.has_index,
+                "hasSourceHtml": p.has_source_html,
                 "hasGit": p.has_git,
                 "registered": p.registered,
             }
@@ -844,6 +934,66 @@ button.primary:hover:not(:disabled) {
 #term::-webkit-scrollbar-track { background: var(--terminal-bg); }
 #term::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 4px; }
 
+/* --- Pipeline Steps --- */
+
+.step {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+}
+
+.step-off { opacity: 0.35; }
+
+.step-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.step-num {
+  color: var(--text-dim);
+  font-size: 0.85em;
+  min-width: 16px;
+  padding-top: 1px;
+}
+
+.step-info { flex: 1; }
+
+.step-name {
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+.step-desc {
+  color: var(--text-dim);
+  font-size: 0.78em;
+  margin-top: 1px;
+}
+
+.step-status {
+  font-size: 0.78em;
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+.step-sep { color: var(--text-dim); }
+.ck { color: var(--green); }
+.xk { color: var(--text-dim); }
+
+.step-btns {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-left: 26px;
+}
+
+.btn-chain {
+  font-size: 0.82em;
+  color: var(--text-muted);
+  border-style: dashed;
+}
+
 /* --- New Game --- */
 
 .new-game-btn {
@@ -916,7 +1066,7 @@ button.primary:hover:not(:disabled) {
   <div id="create-panel" style="display:none">
     <div class="panel-head">
       <h2>New Game</h2>
-      <div class="panel-tags">Create a new Inform 7 project</div>
+      <div class="panel-tags">Create a new project</div>
     </div>
 
     <section>
@@ -958,21 +1108,8 @@ The Foyer is a room. "You stand in a grand foyer."'></textarea>
     </div>
 
     <section>
-      <h3>Quick Actions</h3>
-      <div class="btn-row">
-        <button onclick="run('compile',{force:isForce()})">Compile</button>
-        <button onclick="run('build-test')">Build &amp; Test</button>
-        <button id="btn-pubup" onclick="pubUpdate()">Publish Update</button>
-      </div>
-      <div class="form-check" style="margin-top:6px">
-        <input id="f-force" type="checkbox">
-        <span>Force regenerate HTML (overwrite play.html, index.html, etc.)</span>
-      </div>
-    </section>
-
-    <section>
-      <details id="pub-section">
-        <summary><h3>Publish New Game</h3></summary>
+      <details id="meta-section">
+        <summary><h3>Metadata</h3></summary>
         <div class="form-grid">
           <label for="f-title">Title</label>
           <input id="f-title" type="text">
@@ -985,22 +1122,24 @@ The Foyer is a room. "You stand in a grand foyer."'></textarea>
           <input id="f-sound" type="checkbox">
           <span>Sound (blorb)</span>
         </div>
-        <button class="primary" onclick="pubNew()">Publish New Game</button>
+        <div class="form-check">
+          <input id="f-force" type="checkbox">
+          <span>Force overwrite generated files</span>
+        </div>
       </details>
     </section>
 
     <section>
+      <h3>Pipeline</h3>
+      <div id="steps"></div>
+    </section>
+
+    <section>
       <details>
-        <summary><h3>More Tools</h3></summary>
+        <summary><h3>Quick Actions</h3></summary>
         <div class="btn-row">
-          <button onclick="run('extract-walkthrough')">Extract Walkthrough</button>
-          <button onclick="run('generate-pages',fd())">Generate Pages</button>
-          <button onclick="run('register',fd())">Register in Hub</button>
-          <button onclick="unregister()">Unregister from Hub</button>
-        </div>
-        <div class="btn-row" style="margin-top:4px">
-          <button id="btn-wt" onclick="run('test-walkthrough')">Run Walkthrough</button>
-          <button id="btn-rt" onclick="run('test-regtest')">Run Regtests</button>
+          <button id="btn-pubup" onclick="pubUpdate()">Publish Update</button>
+          <button onclick="unregister()">Unregister</button>
         </div>
       </details>
     </section>
@@ -1025,20 +1164,87 @@ let sel = null;
 let curJob = null;
 let evtSrc = null;
 
+const ENGINE_LABELS = {
+  inform7: 'Inform 7', wwwbasic: 'wwwBASIC', qbjc: 'QBasic',
+  applesoft: 'Applesoft', jsdos: 'DOS', basic: 'BASIC',
+  twine: 'Twine', ink: 'Ink', unknown: 'Unknown',
+};
+
+const BASIC_ENGINES = ['wwwbasic', 'qbjc', 'applesoft', 'basic'];
+const BUILDABLE = ['inform7', 'wwwbasic', 'qbjc', 'applesoft', 'basic', 'ink'];
+
+const STEPS = [
+  {
+    id: 'build', name: 'Build',
+    desc: p => p.engine === 'inform7'
+      ? 'Compile I7 source \u2192 binary + web player'
+      : p.engine === 'ink'
+        ? 'Compile .ink \u2192 JSON + web player'
+        : BASIC_ENGINES.includes(p.engine)
+          ? 'Generate web player from source'
+          : 'Compile source',
+    status: p => [
+      { ok: p.hasBinary, t: p.hasBinary ? 'binary' : 'no binary' },
+      { ok: p.hasPlayHtml, t: p.hasPlayHtml ? 'play.html' : 'no play.html' },
+    ],
+    enabled: p => BUILDABLE.includes(p.engine),
+  },
+  {
+    id: 'test', name: 'Test',
+    desc: () => 'Run walkthrough + regression tests',
+    status: p => {
+      const s = [];
+      if (p.hasWalkthrough) s.push({ ok: true, t: 'walkthrough' });
+      if (p.hasRegtest) s.push({ ok: true, t: 'regtest' });
+      if (!s.length) s.push({ ok: false, t: 'no tests configured' });
+      return s;
+    },
+    enabled: p => p.engine === 'inform7' && (p.hasWalkthrough || p.hasRegtest),
+  },
+  {
+    id: 'package', name: 'Package',
+    desc: () => 'Generate landing page + source browser',
+    status: p => [
+      { ok: p.hasIndex, t: p.hasIndex ? 'index.html' : 'no index.html' },
+      { ok: p.hasSourceHtml, t: p.hasSourceHtml ? 'source.html' : 'no source.html' },
+    ],
+    enabled: () => true,
+  },
+  {
+    id: 'register', name: 'Register',
+    desc: () => 'Add to IF Hub registry + push changes',
+    status: p => [
+      { ok: p.registered, t: p.registered ? 'registered' : 'not registered' },
+    ],
+    enabled: () => true,
+  },
+  {
+    id: 'publish', name: 'Publish',
+    desc: p => p.hasGit ? 'Push changes to GitHub Pages' : 'Create GitHub repo + enable Pages',
+    status: p => [
+      { ok: p.hasGit, t: p.hasGit ? 'git repo' : 'no repo' },
+    ],
+    enabled: () => true,
+  },
+];
+
 async function load() {
   const r = await fetch('/api/projects');
   projects = await r.json();
   renderList();
+  // Re-render steps if a project is selected
+  if (sel) {
+    const p = projects.find(x => x.name === sel);
+    if (p) renderSteps(p);
+  }
 }
 
 function renderList() {
   const el = document.getElementById('proj-list');
   el.innerHTML = '';
   projects.forEach(p => {
-    const tags = [];
+    const tags = [ENGINE_LABELS[p.engine] || p.engine];
     if (p.sound) tags.push('sound');
-    if (p.versioned) tags.push('versioned' + (p.currentVersion ? ' ' + p.currentVersion : ''));
-    if (p.hasTestMe) tags.push('Test me');
     if (p.hasWalkthrough) tags.push('walkthrough');
     if (p.hasRegtest) tags.push('regtest');
 
@@ -1056,37 +1262,72 @@ function renderList() {
   });
 }
 
+function renderSteps(p) {
+  const el = document.getElementById('steps');
+  el.innerHTML = '';
+  STEPS.forEach((s, i) => {
+    const on = s.enabled(p);
+    const st = s.status(p);
+    const isLast = i === STEPS.length - 1;
+
+    const statusHtml = st.map(x =>
+      '<span class="' + (x.ok ? 'ck' : 'xk') + '">' +
+      (x.ok ? '\u2713 ' : '\u2717 ') + x.t + '</span>'
+    ).join(' <span class="step-sep">\u00b7</span> ');
+
+    let btns = '<button ' + (on ? '' : 'disabled ') +
+      'onclick="runStep(\'' + s.id + '\')">' + s.name + '</button>';
+    if (!isLast) {
+      btns += ' <button ' + (on ? '' : 'disabled ') +
+        'onclick="runFrom(\'' + s.id + '\')" class="btn-chain">' +
+        s.name + ' \u2192 Publish</button>';
+    }
+
+    const div = document.createElement('div');
+    div.className = 'step' + (on ? '' : ' step-off');
+    div.innerHTML =
+      '<div class="step-head">' +
+        '<span class="step-num">' + (i + 1) + '</span>' +
+        '<div class="step-info">' +
+          '<div class="step-name">' + s.name + '</div>' +
+          '<div class="step-desc">' + s.desc(p) + '</div>' +
+        '</div>' +
+        '<div class="step-status">' + statusHtml + '</div>' +
+      '</div>' +
+      '<div class="step-btns">' + btns + '</div>';
+    el.appendChild(div);
+  });
+}
+
 function pick(name) {
   sel = name;
   const p = projects.find(x => x.name === name);
   if (!p) return;
 
   document.getElementById('welcome').style.display = 'none';
+  document.getElementById('create-panel').style.display = 'none';
   document.getElementById('panel').style.display = 'block';
   document.getElementById('p-name').textContent = p.name;
 
-  const info = [];
+  const info = [ENGINE_LABELS[p.engine] || p.engine];
+  if (p.sourceFile) info.push(p.sourceFile);
   if (p.hasPlayHtml) info.push('Web player');
-  if (p.hasUlx) info.push('Compiled');
+  if (p.hasBinary) info.push('Compiled');
   if (p.sound) info.push('Sound (blorb)');
-  if (p.versioned) info.push('Versioned' + (p.currentVersion ? ': ' + p.currentVersion : ''));
   if (p.hasGit) info.push('Git repo');
-  document.getElementById('p-tags').textContent = info.join(' \u00b7 ') || 'Source only';
+  document.getElementById('p-tags').textContent = info.join(' \u00b7 ');
 
-  // Pre-fill form
+  // Pre-fill metadata form
   document.getElementById('f-title').value =
     name.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   document.getElementById('f-sound').checked = p.sound;
 
-  // Enable/disable buttons
-  document.getElementById('btn-wt').disabled = !p.hasWalkthrough;
-  document.getElementById('btn-rt').disabled = !p.hasRegtest;
+  // Publish Update button
   document.getElementById('btn-pubup').disabled = !p.hasGit;
 
+  renderSteps(p);
   renderList();
 }
-
-function isForce() { return document.getElementById('f-force').checked; }
 
 function fd() {
   return {
@@ -1094,9 +1335,13 @@ function fd() {
     meta: document.getElementById('f-meta').value,
     description: document.getElementById('f-desc').value,
     sound: document.getElementById('f-sound').checked,
-    force: isForce(),
+    force: document.getElementById('f-force').checked,
   };
 }
+
+function runStep(step) { run(step, fd()); }
+
+function runFrom(step) { run('run-from', { ...fd(), from: step }); }
 
 async function run(task, extra) {
   if (!sel) return;
@@ -1121,11 +1366,9 @@ async function run(task, extra) {
   curJob = data.jobId;
   document.getElementById('btn-stop').disabled = false;
 
-  // Show commands
   data.commands.forEach(c => out('$ ' + c + '\n'));
   out('\n');
 
-  // Start SSE
   if (evtSrc) evtSrc.close();
   evtSrc = new EventSource('/api/stream/' + data.jobId);
 
@@ -1145,7 +1388,7 @@ async function run(task, extra) {
     } else {
       setSt('st-err', 'Failed (exit code ' + d.exitCode + ')');
     }
-    load(); // refresh project status
+    load();
   });
 
   evtSrc.onerror = () => {
@@ -1154,8 +1397,6 @@ async function run(task, extra) {
     document.getElementById('btn-stop').disabled = true;
   };
 }
-
-function pubNew() { run('publish-new', fd()); }
 
 function unregister() {
   if (!sel) return;
@@ -1176,7 +1417,6 @@ async function stopJob() {
 
 function out(text) {
   const t = document.getElementById('term');
-  // Strip ANSI escape codes
   t.textContent += text.replace(/\x1b\[[0-9;]*m/g, '');
   t.scrollTop = t.scrollHeight;
 }
@@ -1222,7 +1462,6 @@ async function createGame() {
   cSt.className = 'st-run';
   cSt.textContent = 'Creating...';
 
-  // Create via API (empty source = new_project.py scaffolds a starter)
   cTerm.textContent += 'Creating projects/' + name + '/...\n';
 
   const r = await fetch('/api/create', {
@@ -1247,7 +1486,6 @@ async function createGame() {
   cSt.className = 'st-done';
   cSt.textContent = 'Done';
 
-  // Switch to the new project
   setTimeout(() => {
     hideCreate();
     pick(name);
