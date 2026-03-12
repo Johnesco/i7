@@ -479,13 +479,13 @@ Compiles a project's `story.ni` (or an alternate source via `--source`) to a pla
 
 **Custom template support:** If `play-template.html` exists in the project root, it is passed to `setup_web.py` via `--template`.
 
-**Post-build validation:** After `setup_web.py` completes, `compile.py` runs `validate_web.py` on the generated `web/` directory to catch common deployment issues (missing files, broken template tokens, malformed binaries). See section 6.5 for the full list of checks. Skipped when `--compile-only` is used.
+**Post-build validation:** After `setup_web.py` completes, `compile.py` runs `validate_web.py` on the project directory to catch common deployment issues (missing files, broken template tokens, malformed binaries). See section 6.5 for the full list of checks. Skipped when `--compile-only` is used.
 
 **Output:**
 - `<name>.ulx` — Glulx binary (always produced)
 - `<name>.gblorb` — Blorb package (only with `--sound`)
-- `web/play.html` — Ready-to-serve Parchment player page (unless `--compile-only`)
-- `web/lib/parchment/` — Parchment library + base64-encoded game binary (unless `--compile-only`)
+- `play.html` — Ready-to-serve Parchment player page (unless `--compile-only`)
+- `lib/parchment/` — Parchment library + base64-encoded game binary (unless `--compile-only`)
 
 **Note on `--source`:** When using `--source`, the compiled output (`.ulx`, `.gblorb`) is still written to the project root (`projects/<name>/`), not alongside the source file. The `Sounds/` directory is also resolved relative to the project root, so sound assets are shared across all versions.
 

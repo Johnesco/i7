@@ -138,10 +138,6 @@ def main():
                   cp *.html _site/ 2>/dev/null || true
                   cp *.txt _site/ 2>/dev/null || true
                   cp story.ni _site/ 2>/dev/null || true
-                  shopt -s nullglob
-                  for v in v[0-9]*/; do
-                    cp -r "$v" "_site/$v"
-                  done
               - uses: actions/upload-pages-artifact@v3
                 with:
                   path: _site
@@ -187,8 +183,6 @@ def main():
 
         # Pipeline config (used by tools/pipeline.py, ignored by testing framework)
         PIPELINE_SOUND=false
-        PIPELINE_VERSIONED=false
-        PIPELINE_CURRENT_VERSION=""
         PIPELINE_HUB_ID="{name}"
         PIPELINE_TESTS="walkthrough,regtest"
     """), encoding="utf-8")

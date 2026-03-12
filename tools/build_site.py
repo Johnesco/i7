@@ -10,7 +10,6 @@ Copies site-level files (HTML, lib/, data) and version directories
 """
 
 import argparse
-import re
 import shutil
 import sys
 from pathlib import Path
@@ -54,16 +53,6 @@ def main():
     if scenarios_dir.is_dir():
         shutil.copytree(str(scenarios_dir), str(site_dir / "scenarios"))
         print("  Copied scenarios/")
-
-    # Copy version snapshots
-    found_versions = False
-    for v in sorted(project_dir.iterdir()):
-        if v.is_dir() and re.match(r"^v\d+$", v.name):
-            shutil.copytree(str(v), str(site_dir / v.name))
-            print(f"  Copied {v.name}/")
-            found_versions = True
-    if not found_versions:
-        print("  No version snapshots found")
 
     print()
     print(f"Site assembled at: {site_dir}")

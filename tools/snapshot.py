@@ -20,6 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib import paths, process, web
+from lib.config import _parse_kv
 
 
 def main():
@@ -36,6 +37,13 @@ def main():
         print(f"ERROR: Project not found: {project_dir}", file=sys.stderr)
         sys.exit(1)
 
+    # Resolve binary name: project.conf BINARY_NAME > game dir name
+    bin_name = args.game
+    conf_file = project_dir / "tests" / "project.conf"
+    if conf_file.exists():
+        kv = _parse_kv(conf_file, project_dir)
+        bin_name = kv.get("BINARY_NAME", "") or args.game
+
     if args.update:
         # --- Update existing version ---
         if not version_dir.is_dir():
@@ -49,8 +57,15 @@ def main():
 
         # Auto-detect binary type
         parchment_dir = version_dir / "lib" / "parchment"
-        binary_type = "gblorb" if (parchment_dir / f"{args.game}.gblorb.js").exists() else "ulx"
+        binary_type = "gblorb" if (parchment_dir / f"{bin_name}.gblorb.js").exists() else "ulx"
         print(f"  Binary type: {binary_type}")
+
+        # Save root binaries so compile.py doesn't clobber them
+        # (compile.py always outputs to the project root regardless of --source)
+        root_ulx = project_dir / f"{bin_name}.ulx"
+        root_gblorb = project_dir / f"{bin_name}.gblorb"
+        saved_ulx = root_ulx.read_bytes() if root_ulx.exists() else None
+        saved_gblorb = root_gblorb.read_bytes() if root_gblorb.exists() else None
 
         # Recompile from frozen source
         compile_cmd = [
@@ -63,28 +78,51 @@ def main():
         if r.returncode != 0:
             sys.exit(r.returncode)
 
+        # Copy compiled binary into the version directory
+        if binary_type == "gblorb":
+            if root_gblorb.exists():
+                shutil.copy2(str(root_gblorb), str(version_dir / root_gblorb.name))
+                print(f"  {root_gblorb.name} -> {args.version}/")
+            if root_ulx.exists():
+                shutil.copy2(str(root_ulx), str(version_dir / root_ulx.name))
+                print(f"  {root_ulx.name} -> {args.version}/")
+        else:
+            if root_ulx.exists():
+                shutil.copy2(str(root_ulx), str(version_dir / root_ulx.name))
+                print(f"  {root_ulx.name} -> {args.version}/")
+
         # Encode binary
         parchment_dir.mkdir(parents=True, exist_ok=True)
         if binary_type == "gblorb":
             web.write_story_js(
-                project_dir / f"{args.game}.gblorb",
-                parchment_dir / f"{args.game}.gblorb.js",
+                project_dir / f"{bin_name}.gblorb",
+                parchment_dir / f"{bin_name}.gblorb.js",
             )
-            print(f"  {args.game}.gblorb.js updated")
+            print(f"  {bin_name}.gblorb.js updated")
             # Update .ulx.js companion if it exists
-            ulx_js = parchment_dir / f"{args.game}.ulx.js"
-            if ulx_js.exists() and (project_dir / f"{args.game}.ulx").exists():
+            ulx_js = parchment_dir / f"{bin_name}.ulx.js"
+            if ulx_js.exists() and (project_dir / f"{bin_name}.ulx").exists():
                 web.write_story_js(
-                    project_dir / f"{args.game}.ulx",
+                    project_dir / f"{bin_name}.ulx",
                     ulx_js,
                 )
-                print(f"  {args.game}.ulx.js updated (companion)")
+                print(f"  {bin_name}.ulx.js updated (companion)")
         else:
             web.write_story_js(
-                project_dir / f"{args.game}.ulx",
-                parchment_dir / f"{args.game}.ulx.js",
+                project_dir / f"{bin_name}.ulx",
+                parchment_dir / f"{bin_name}.ulx.js",
             )
-            print(f"  {args.game}.ulx.js updated")
+            print(f"  {bin_name}.ulx.js updated")
+
+        # Restore root binaries so --update doesn't clobber them
+        if saved_ulx is not None:
+            root_ulx.write_bytes(saved_ulx)
+        elif root_ulx.exists() and saved_ulx is None:
+            root_ulx.unlink()
+        if saved_gblorb is not None:
+            root_gblorb.write_bytes(saved_gblorb)
+        elif root_gblorb.exists() and saved_gblorb is None:
+            root_gblorb.unlink()
 
         # Copy walkthrough files
         walk_dir = project_dir / "tests" / "inform7"
@@ -123,20 +161,26 @@ def main():
         parchment_dir = version_dir / "lib" / "parchment"
         parchment_dir.mkdir(parents=True, exist_ok=True)
 
-        gblorb = project_dir / f"{args.game}.gblorb"
-        ulx = project_dir / f"{args.game}.ulx"
+        gblorb = project_dir / f"{bin_name}.gblorb"
+        ulx = project_dir / f"{bin_name}.ulx"
 
         if gblorb.exists():
-            web.write_story_js(gblorb, parchment_dir / f"{args.game}.gblorb.js")
-            print(f"  {args.game}.gblorb.js created")
+            shutil.copy2(str(gblorb), str(version_dir / gblorb.name))
+            print(f"  {gblorb.name} copied")
+            web.write_story_js(gblorb, parchment_dir / f"{bin_name}.gblorb.js")
+            print(f"  {bin_name}.gblorb.js created")
             if ulx.exists():
-                web.write_story_js(ulx, parchment_dir / f"{args.game}.ulx.js")
-                print(f"  {args.game}.ulx.js created (companion)")
+                shutil.copy2(str(ulx), str(version_dir / ulx.name))
+                print(f"  {ulx.name} copied")
+                web.write_story_js(ulx, parchment_dir / f"{bin_name}.ulx.js")
+                print(f"  {bin_name}.ulx.js created (companion)")
         elif ulx.exists():
-            web.write_story_js(ulx, parchment_dir / f"{args.game}.ulx.js")
-            print(f"  {args.game}.ulx.js created")
+            shutil.copy2(str(ulx), str(version_dir / ulx.name))
+            print(f"  {ulx.name} copied")
+            web.write_story_js(ulx, parchment_dir / f"{bin_name}.ulx.js")
+            print(f"  {bin_name}.ulx.js created")
         else:
-            print(f"ERROR: No {args.game}.gblorb or {args.game}.ulx -- compile first", file=sys.stderr)
+            print(f"ERROR: No {bin_name}.gblorb or {bin_name}.ulx -- compile first", file=sys.stderr)
             sys.exit(1)
 
         # Copy template from previous version

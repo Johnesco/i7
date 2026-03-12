@@ -30,10 +30,22 @@ def main():
     parser.add_argument("--source", help="Use this story.ni instead of the project's own")
     parser.add_argument("--compile-only", action="store_true", help="Skip web player update")
     parser.add_argument("--force", action="store_true", help="Overwrite play.html")
+    parser.add_argument("--binary-name", help="Override binary filename (default: game dir name)")
     args = parser.parse_args()
 
     project_dir = paths.project_dir(args.game)
     source_file = Path(args.source) if args.source else project_dir / "story.ni"
+
+    # Resolve binary name: CLI flag > project.conf BINARY_NAME > game dir name
+    bin_name = args.binary_name
+    if not bin_name:
+        conf_file = project_dir / "tests" / "project.conf"
+        if conf_file.exists():
+            from lib.config import _parse_kv
+            kv = _parse_kv(conf_file, project_dir)
+            bin_name = kv.get("BINARY_NAME", "")
+    if not bin_name:
+        bin_name = args.game
 
     if not source_file.exists():
         print(f"ERROR: story.ni not found at {source_file}", file=sys.stderr)
@@ -77,7 +89,7 @@ def main():
     r = process.run([
         str(paths.I6_COMPILER), "-w", "-G",
         str(project_dir / "story.i6"),
-        str(project_dir / f"{args.game}.ulx"),
+        str(project_dir / f"{bin_name}.ulx"),
     ])
     if r.returncode != 0:
         print("ERROR: Inform 6 compilation failed.", file=sys.stderr)
@@ -88,10 +100,10 @@ def main():
         output.step(3, total_steps, "Generating blurb...")
         r = process.run([
             sys.executable, str(paths.TOOLS_DIR / "generate_blurb.py"),
-            "--ulx", str(project_dir / f"{args.game}.ulx"),
+            "--ulx", str(project_dir / f"{bin_name}.ulx"),
             "--source", str(source_file),
             "--sounds", str(project_dir / "Sounds"),
-            "--out", str(project_dir / f"{args.game}.blurb"),
+            "--out", str(project_dir / f"{bin_name}.blurb"),
         ])
         if r.returncode != 0:
             sys.exit(r.returncode)
@@ -100,8 +112,8 @@ def main():
         output.step(4, total_steps, "Building blorb...")
         r = process.run([
             str(paths.INBLORB),
-            str(project_dir / f"{args.game}.blurb"),
-            str(project_dir / f"{args.game}.gblorb"),
+            str(project_dir / f"{bin_name}.blurb"),
+            str(project_dir / f"{bin_name}.gblorb"),
         ])
         if r.returncode != 0:
             print("ERROR: inblorb failed.", file=sys.stderr)
@@ -111,23 +123,22 @@ def main():
     output.step(total_steps - 1, total_steps, "Cleaning up...")
     (project_dir / "story.i6").unlink(missing_ok=True)
     if args.sound:
-        (project_dir / f"{args.game}.blurb").unlink(missing_ok=True)
+        (project_dir / f"{bin_name}.blurb").unlink(missing_ok=True)
 
     # Update web player
     if not args.compile_only:
         output.step(total_steps, total_steps, "Updating web player...")
-        web_dir = project_dir / "web" if (project_dir / "web").is_dir() else project_dir
 
         setup_cmd = [
             sys.executable, str(paths.WEB_DIR / "setup_web.py"),
             "--title", game_title,
-            "--out", str(web_dir),
+            "--out", str(project_dir),
             "--walkthrough",
         ]
         if args.sound:
-            setup_cmd.extend(["--blorb", str(project_dir / f"{args.game}.gblorb")])
+            setup_cmd.extend(["--blorb", str(project_dir / f"{bin_name}.gblorb")])
         else:
-            setup_cmd.extend(["--ulx", str(project_dir / f"{args.game}.ulx")])
+            setup_cmd.extend(["--ulx", str(project_dir / f"{bin_name}.ulx")])
         if (project_dir / "play-template.html").exists():
             setup_cmd.extend(["--template", str(project_dir / "play-template.html")])
             print(f"  Using project template: {project_dir / 'play-template.html'}")
@@ -149,7 +160,7 @@ def main():
             print("Generating walkthrough transcript...")
             (project_dir / "tests" / "inform7").mkdir(parents=True, exist_ok=True)
             r = process.run_interpreter(
-                str(glulxe), str(project_dir / f"{args.game}.ulx"),
+                str(glulxe), str(project_dir / f"{bin_name}.ulx"),
                 input_text=walk_cmds.read_text(encoding="utf-8"),
                 seed=None,
             )
@@ -165,32 +176,31 @@ def main():
                     "-o", str(walk_guide),
                 ], capture=True)
 
-                # Copy to web root
-                shutil.copy2(str(walk_out), str(web_dir))
-                shutil.copy2(str(walk_cmds), str(web_dir))
+                # Copy to project root
+                shutil.copy2(str(walk_out), str(project_dir))
+                shutil.copy2(str(walk_cmds), str(project_dir))
                 if walk_guide.exists():
-                    shutil.copy2(str(walk_guide), str(web_dir))
+                    shutil.copy2(str(walk_guide), str(project_dir))
 
         # Validate
         print()
         print("Validating web player...")
-        web.validate_web_dir(web_dir)
+        web.validate_web_dir(project_dir)
     else:
         output.step(total_steps, total_steps, "Skipping web player (--compile-only)")
 
     # Summary
-    ulx_path = project_dir / f"{args.game}.ulx"
+    ulx_path = project_dir / f"{bin_name}.ulx"
     ulx_size = ulx_path.stat().st_size if ulx_path.exists() else 0
     print()
     print("=== Done ===")
     print(f"  Binary: {ulx_path} ({ulx_size} bytes)")
     if args.sound:
-        gblorb_path = project_dir / f"{args.game}.gblorb"
+        gblorb_path = project_dir / f"{bin_name}.gblorb"
         gblorb_size = gblorb_path.stat().st_size if gblorb_path.exists() else 0
         print(f"  Blorb:  {gblorb_path} ({gblorb_size} bytes)")
     if not args.compile_only:
-        web_dir = project_dir / "web" if (project_dir / "web").is_dir() else project_dir
-        print(f"  Web:    {web_dir / 'play.html'}")
+        print(f"  Web:    {project_dir / 'play.html'}")
     print()
     if paths.NATIVE_GLULXE.exists():
         print(f"  Test:   cd {project_dir} && python {paths.TOOLS_DIR}/testing/run_tests.py --config tests/project.conf")

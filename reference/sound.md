@@ -323,7 +323,7 @@ The overlay approach observes Parchment's DOM output rather than hooking into th
 tools/web/
 └── sound-engine.js              ← Source of truth for the shared engine
 
-projects/<game>/web/
+projects/<game>/
 ├── audio/                       ← Ambient loops (optional)
 │   └── sfx/                     ← Sound effects
 ├── lib/

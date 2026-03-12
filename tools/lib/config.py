@@ -42,11 +42,10 @@ class DiagConfig:
 @dataclass
 class PipelineConfig:
     sound: bool = False
-    versioned: bool = False
-    current_version: str = ""
     hub_id: str = ""
     tests: str = ""
     walkthrough_output_dir: str = ""
+    binary_name: str = ""
 
 
 @dataclass
@@ -185,11 +184,10 @@ def load_config(conf_path: Path | str) -> ProjectConfig:
 
     # Pipeline
     cfg.pipeline.sound = kv.get("PIPELINE_SOUND", "").lower() == "true"
-    cfg.pipeline.versioned = kv.get("PIPELINE_VERSIONED", "").lower() == "true"
-    cfg.pipeline.current_version = kv.get("PIPELINE_CURRENT_VERSION", "")
     cfg.pipeline.hub_id = kv.get("PIPELINE_HUB_ID", "")
     cfg.pipeline.tests = kv.get("PIPELINE_TESTS", "")
     cfg.pipeline.walkthrough_output_dir = kv.get("PIPELINE_WALKTHROUGH_OUTPUT_DIR", "")
+    cfg.pipeline.binary_name = kv.get("BINARY_NAME", "")
 
     return cfg
 

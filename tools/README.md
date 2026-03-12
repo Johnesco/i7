@@ -56,7 +56,7 @@ Additional steps with `--sound`:
 - Rejects titles with colons (`:`) — invalid filenames on Windows
 - Rejects `--sound` if `Sounds/` directory is missing at project root
 
-Output: `projects/<name>/<name>.ulx` (+ `.gblorb` with `--sound`) and `projects/<name>/web/play.html` (unless `--compile-only`)
+Output: `projects/<name>/<name>.ulx` (+ `.gblorb` with `--sound`) and `projects/<name>/play.html` (unless `--compile-only`)
 
 ### `publish.py` — Publish to GitHub Pages
 
@@ -217,15 +217,15 @@ Creates a ready-to-serve web player directory with all required Parchment files 
 
 ```bash
 # Standard (naked ULX binary, no sound)
-python tools/web/setup_web.py --title "My Game" --ulx path/to/game.ulx --out path/to/web
+python tools/web/setup_web.py --title "My Game" --ulx path/to/game.ulx --out path/to/project
 
 # With embedded sound (gblorb binary)
-python tools/web/setup_web.py --title "My Game" --blorb path/to/game.gblorb --out path/to/web
+python tools/web/setup_web.py --title "My Game" --blorb path/to/game.gblorb --out path/to/project
 ```
 
 Creates:
 ```
-web/
+project/
 ├── play.html                ← Browser-playable game page (cache-busted)
 └── lib/parchment/
     ├── jquery.min.js        ← jQuery

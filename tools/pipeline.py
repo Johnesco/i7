@@ -9,13 +9,10 @@ Usage:
 Stages (in pipeline order):
     compile   — I7 -> I6 -> Glulx -> Blorb -> web player
     test      — Walkthrough + regtest
-    snapshot  — Freeze to vN/ (requires --version)
     push      — Stage changes, show summary, prompt before commit/push
 
 Flags:
     --all             Run: compile test push
-    --ship            Run: compile test snapshot push (requires --version)
-    --version vN      Version for snapshot stage
     --force           Skip staleness checks
     --dry-run         Show what would happen
     --continue        Resume from last failed stage
@@ -25,7 +22,6 @@ Flags:
 import argparse
 import hashlib
 import json
-import re
 import shutil
 import sys
 import time
@@ -58,9 +54,20 @@ def compute_hash(path: Path) -> str:
     return "none"
 
 
-def find_binary(project_dir: Path, name: str) -> Path | None:
+def resolve_bin_name(project_dir: Path, name: str) -> str:
+    """Resolve binary name: project.conf BINARY_NAME > game dir name."""
+    conf_file = project_dir / "tests" / "project.conf"
+    if conf_file.exists():
+        kv = config._parse_kv(conf_file, project_dir)
+        bn = kv.get("BINARY_NAME", "")
+        if bn:
+            return bn
+    return name
+
+
+def find_binary(project_dir: Path, bin_name: str) -> Path | None:
     for ext in (".gblorb", ".ulx"):
-        p = project_dir / f"{name}{ext}"
+        p = project_dir / f"{bin_name}{ext}"
         if p.exists():
             return p
     return None
@@ -92,10 +99,7 @@ def stage_test(name: str, project_dir: Path, cfg_pipeline):
         # Determine output copy dir
         wt_output_dir = cfg_pipeline.walkthrough_output_dir
         if not wt_output_dir:
-            if cfg_pipeline.versioned and cfg_pipeline.current_version:
-                wt_output_dir = str(project_dir / cfg_pipeline.current_version)
-            else:
-                wt_output_dir = str(project_dir)
+            wt_output_dir = str(project_dir)
 
         # Run walkthrough via Python
         if cfg.primary.walkthrough and Path(cfg.primary.walkthrough).exists():
@@ -151,21 +155,6 @@ def stage_test(name: str, project_dir: Path, cfg_pipeline):
         output.skip("No tests configured")
 
 
-def stage_snapshot(name: str, project_dir: Path, version: str):
-    # Sync root story.ni to version dir before recompiling
-    version_dir = project_dir / version
-    if version_dir.is_dir() and (project_dir / "story.ni").exists():
-        shutil.copy2(str(project_dir / "story.ni"), str(version_dir / "story.ni"))
-        print(f"  story.ni synced to {version}")
-
-    r = process.run([
-        sys.executable, str(paths.TOOLS_DIR / "snapshot.py"),
-        name, version, "--update",
-    ])
-    if r.returncode != 0:
-        raise RuntimeError(f"snapshot failed (exit {r.returncode})")
-
-
 def stage_push(name: str, commit_msg: str):
     print("  Staging changes...")
     cwd = paths.I7_ROOT
@@ -205,7 +194,7 @@ def stage_push(name: str, commit_msg: str):
 
 # --- Main ---
 
-PIPELINE_ORDER = ["compile", "test", "snapshot", "push"]
+PIPELINE_ORDER = ["compile", "test", "push"]
 VALID_STAGES = set(PIPELINE_ORDER)
 
 
@@ -214,8 +203,6 @@ def main():
     parser.add_argument("game", help="Game name")
     parser.add_argument("stages", nargs="*", help="Stages to run")
     parser.add_argument("--all", action="store_true", help="compile test push")
-    parser.add_argument("--ship", action="store_true", help="compile test snapshot push")
-    parser.add_argument("--version", help="Version for snapshot")
     parser.add_argument("--force", action="store_true", help="Skip staleness checks")
     parser.add_argument("--dry-run", action="store_true", help="Show plan only")
     parser.add_argument("--continue", dest="resume", action="store_true", help="Resume from failure")
@@ -237,12 +224,7 @@ def main():
             print(f"Unknown stage: {s}", file=sys.stderr)
             sys.exit(1)
 
-    if args.ship:
-        stages = list(PIPELINE_ORDER)
-        if not args.version:
-            print("ERROR: --ship requires --version", file=sys.stderr)
-            sys.exit(1)
-    elif args.all:
+    if args.all:
         stages = ["compile", "test", "push"]
 
     if not stages:
@@ -250,15 +232,6 @@ def main():
 
     # Reorder to pipeline order
     stages = [s for s in PIPELINE_ORDER if s in stages]
-
-    # Validate snapshot
-    if "snapshot" in stages:
-        if not args.version:
-            print("ERROR: snapshot requires --version", file=sys.stderr)
-            sys.exit(1)
-        if not re.match(r"^v\d+$", args.version):
-            print(f"ERROR: --version must match v[0-9]+ (got: {args.version})", file=sys.stderr)
-            sys.exit(1)
 
     # Pipeline config from project.conf
     conf_file = project_dir / "tests" / "project.conf"
@@ -291,6 +264,11 @@ def main():
 
     save_state(state_file, "STAGE_ORIGINAL_STAGES", " ".join(stages))
 
+    # Resolve binary name for staleness checks
+    bin_name = resolve_bin_name(project_dir, name)
+    if pipeline_cfg.binary_name:
+        bin_name = pipeline_cfg.binary_name
+
     # Execution
     print(output.bold(f"=== PIPELINE: {name} ==="))
     print(f"  Stages: {' '.join(stages)}")
@@ -320,7 +298,7 @@ def main():
                 if state.get("STAGE_COMPILE_SOURCE_HASH") == current:
                     skip = True
             elif stage == "test":
-                binary = find_binary(project_dir, name)
+                binary = find_binary(project_dir, bin_name)
                 if binary:
                     current = compute_hash(binary)
                     if state.get("STAGE_TEST_BINARY_HASH") == current:
@@ -336,8 +314,6 @@ def main():
                 stage_compile(name, project_dir, pipeline_cfg.sound)
             elif stage == "test":
                 stage_test(name, project_dir, pipeline_cfg)
-            elif stage == "snapshot":
-                stage_snapshot(name, project_dir, args.version)
             elif stage == "push":
                 stage_push(name, args.message or "")
 
@@ -348,11 +324,11 @@ def main():
             if stage == "compile":
                 save_state(state_file, "STAGE_COMPILE_SOURCE_HASH",
                            compute_hash(project_dir / "story.ni"))
-                binary = find_binary(project_dir, name)
+                binary = find_binary(project_dir, bin_name)
                 if binary:
                     save_state(state_file, "STAGE_COMPILE_BINARY_HASH", compute_hash(binary))
             elif stage == "test":
-                binary = find_binary(project_dir, name)
+                binary = find_binary(project_dir, bin_name)
                 if binary:
                     save_state(state_file, "STAGE_TEST_BINARY_HASH", compute_hash(binary))
 

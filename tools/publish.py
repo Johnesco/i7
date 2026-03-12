@@ -52,10 +52,6 @@ jobs:
           cp *.html _site/ 2>/dev/null || true
           cp *.txt _site/ 2>/dev/null || true
           cp story.ni _site/ 2>/dev/null || true
-          shopt -s nullglob
-          for v in v[0-9]*/; do
-            cp -r "$v" "_site/$v"
-          done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
@@ -73,7 +69,7 @@ def main():
     project_dir = paths.project_dir(args.game)
     msg = args.message or f"Update {args.game}"
 
-    if not (project_dir / "play.html").exists() and not (project_dir / "web" / "play.html").exists():
+    if not (project_dir / "play.html").exists():
         print("ERROR: play.html not found. Run compile.py first.", file=sys.stderr)
         sys.exit(1)
 

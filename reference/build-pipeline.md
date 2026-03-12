@@ -84,7 +84,7 @@ rm story.i6
 
 ## Step 3: Set Up the Web Player
 
-Parchment is a browser-based Glulx interpreter. Each project gets a `web/` directory with Parchment libraries and the encoded game binary.
+Parchment is a browser-based Glulx interpreter. Each project gets Parchment libraries and the encoded game binary at the project root (flat layout, no `web/` subdirectory).
 
 ### Option A: Use the Setup Script
 
@@ -92,13 +92,13 @@ Parchment is a browser-based Glulx interpreter. Each project gets a `web/` direc
 python tools/web/setup_web.py \
     --title "My Game" \
     --ulx projects/<game>/<game>.ulx \
-    --out projects/<game>/web
+    --out projects/<game>
 ```
 
 This creates:
 
 ```
-projects/<game>/web/
+projects/<game>/
 ├── play.html                  ← Ready-to-serve player page
 └── lib/parchment/
     ├── jquery.min.js
@@ -115,11 +115,11 @@ All 7 Parchment library files are required. Missing `quixe.js` or `glulxe.js` ca
 
 ### Option B: Manual Setup
 
-If the web directory already exists, just update the binary:
+If the project already has a web player, just update the binary:
 
 ```bash
 B64=$(base64 -w 0 projects/<game>/<game>.ulx) && \
-echo "processBase64Zcode('${B64}')" > projects/<game>/web/lib/parchment/<game>.ulx.js
+echo "processBase64Zcode('${B64}')" > projects/<game>/lib/parchment/<game>.ulx.js
 ```
 
 The `.ulx.js` format is a JSONP callback — single quotes, no semicolons:
@@ -141,7 +141,7 @@ Verify with `wc -l game.ulx.js` — must report **1**.
 ## Step 4: Test Locally
 
 ```bash
-python -m http.server 8000 --directory projects/<game>/web
+python -m http.server 8000 --directory projects/<game>
 # Open http://localhost:8000/play.html
 ```
 
@@ -163,12 +163,12 @@ Sound uses a JavaScript overlay that watches the game's DOM output. Two trigger 
 ```bash
 python tools/web/setup_web.py --sound ...
 # Or manually:
-cp tools/web/sound-engine.js projects/<game>/web/lib/
+cp tools/web/sound-engine.js projects/<game>/lib/
 ```
 
 ### 5b: Create Sound Config
 
-Create `projects/<game>/web/lib/sound-config.js`:
+Create `projects/<game>/lib/sound-config.js`:
 
 ```javascript
 SoundEngine.init({
@@ -190,7 +190,7 @@ SoundEngine.init({
 ### 5c: Add Audio Files
 
 ```
-projects/<game>/web/audio/
+projects/<game>/audio/
 └── sfx/
     ├── glass.mp3
     └── bird.mp3
@@ -237,7 +237,7 @@ Text-matching triggers require no source changes and no recompilation.
 ### 5f: Test Sound Locally
 
 ```bash
-python -m http.server 8000 --directory projects/<game>/web
+python -m http.server 8000 --directory projects/<game>
 ```
 
 Play through to the trigger point. Verify:
@@ -251,7 +251,7 @@ IF Hub serves all games through a unified browser interface at GitHub Pages.
 
 ### 6a: Create a Landing Page
 
-Copy `tools/web/landing-template.html` to `projects/<game>/web/landing.html` and fill in the `ifhub:*` meta tags:
+Copy `tools/web/landing-template.html` to `projects/<game>/landing.html` and fill in the `ifhub:*` meta tags:
 
 ```html
 <meta name="ifhub:title" content="My Game">
@@ -273,11 +273,11 @@ Add an entry to `ifhub/games.json`:
   "source": "games/<game>/story.ni",
   "binary": "games/<game>/<game>.ulx.js",
   "sound": "blorb",
-  "landing": "projects/<game>/web/landing.html",
+  "landing": "projects/<game>/landing.html",
   "deploy": {
     "source": "projects/<game>/story.ni",
-    "binary": "projects/<game>/web/lib/parchment/<game>.ulx.js",
-    "walkthroughDir": "projects/<game>/web"
+    "binary": "projects/<game>/lib/parchment/<game>.ulx.js",
+    "walkthroughDir": "projects/<game>"
   }
 }
 ```
@@ -340,7 +340,7 @@ python /c/code/ifhub/tools/publish.py <game-name>
 
 ### Add a Text-Matching Sound Trigger (No Recompile)
 
-Edit `projects/<game>/web/lib/sound-config.js` — add to `textTriggers`:
+Edit `projects/<game>/lib/sound-config.js` — add to `textTriggers`:
 
 ```javascript
 { id: 'door', pattern: /door creaks/i,

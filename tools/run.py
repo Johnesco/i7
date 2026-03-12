@@ -15,7 +15,7 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # ---------------------------------------------------------------------------
 # Dependency check
@@ -40,7 +40,6 @@ I7_ROOT = os.path.dirname(SCRIPT_DIR)
 PROJECTS_DIR = os.path.join(I7_ROOT, "projects")
 IFHUB_DIR = os.path.join(I7_ROOT, "ifhub")
 PIPELINE_PY = os.path.join(SCRIPT_DIR, "pipeline.py")
-SNAPSHOT_PY = os.path.join(SCRIPT_DIR, "snapshot.py")
 PUBLISH_PY = os.path.join(SCRIPT_DIR, "publish.py")
 DEV_SERVER_PY = os.path.join(SCRIPT_DIR, "dev-server.py")
 COMPILE_PY = os.path.join(SCRIPT_DIR, "compile.py")
@@ -93,15 +92,11 @@ class ProjectInfo:
     name: str
     dir: str
     sound: bool = False
-    versioned: bool = False
-    current_version: str = ""
     hub_id: str = ""
     tests: str = ""
     has_walkthrough: bool = False
     has_regtest: bool = False
     golden_seed: str | None = None
-    versions: list[str] = field(default_factory=list)
-    compilable_versions: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -140,43 +135,6 @@ def get_golden_seed(project_dir: str) -> str | None:
     return None
 
 
-def get_versions(project_dir: str) -> list[str]:
-    """Return sorted list of version names (e.g., ['v0', 'v1', 'v2']).
-
-    Versions are flat directories at the project root (v0/, v1/, etc.),
-    not inside a versions/ subdirectory.
-    """
-    versions = []
-    for name in os.listdir(project_dir):
-        if re.match(r"^v\d+$", name) and os.path.isdir(
-            os.path.join(project_dir, name)
-        ):
-            versions.append(name)
-    return sorted(versions, key=lambda v: int(re.search(r"\d+", v).group()))
-
-
-def get_compilable_versions(project_dir: str, versions: list[str]) -> list[str]:
-    """Filter to versions that have a story.ni (excludes ZIL-only like v0)."""
-    return [
-        v
-        for v in versions
-        if os.path.isfile(os.path.join(project_dir, v, "story.ni"))
-    ]
-
-
-def detect_version_binary_type(project_dir: str, game_name: str, version: str) -> str:
-    """Detect binary type (.gblorb or .ulx) for a version snapshot."""
-    parchment_dir = os.path.join(project_dir, version, "lib", "parchment")
-    # Check for gblorb first (sound-enabled)
-    gblorb_pattern = os.path.join(parchment_dir, "*.gblorb.js")
-    if glob.glob(gblorb_pattern):
-        return ".gblorb"
-    ulx_pattern = os.path.join(parchment_dir, "*.ulx.js")
-    if glob.glob(ulx_pattern):
-        return ".ulx"
-    return ".ulx"  # default
-
-
 def load_projects() -> list[ProjectInfo]:
     """Scan projects/ and return a list of ProjectInfo objects."""
     projects = []
@@ -195,17 +153,6 @@ def load_projects() -> list[ProjectInfo]:
         if not sound and os.path.isdir(os.path.join(project_dir, "Sounds")):
             sound = True
 
-        versioned = fields.get("PIPELINE_VERSIONED", "").lower() == "true"
-        if not versioned:
-            # Check flat layout: v0/, v1/, etc. at project root
-            for entry in os.listdir(project_dir):
-                if re.match(r"^v\d+$", entry) and os.path.isdir(
-                    os.path.join(project_dir, entry)
-                ):
-                    versioned = True
-                    break
-
-        current_version = fields.get("PIPELINE_CURRENT_VERSION", "")
         hub_id = fields.get("PIPELINE_HUB_ID", name)
         tests = fields.get("PIPELINE_TESTS", "")
 
@@ -217,23 +164,16 @@ def load_projects() -> list[ProjectInfo]:
             os.path.join(project_dir, "tests", "*.regtest")
         ))
 
-        versions = get_versions(project_dir) if versioned else []
-        compilable = get_compilable_versions(project_dir, versions) if versioned else []
-
         projects.append(
             ProjectInfo(
                 name=name,
                 dir=project_dir,
                 sound=sound,
-                versioned=versioned,
-                current_version=current_version,
                 hub_id=hub_id,
                 tests=tests,
                 has_walkthrough=has_walkthrough,
                 has_regtest=has_regtest,
                 golden_seed=get_golden_seed(project_dir),
-                versions=versions,
-                compilable_versions=compilable,
             )
         )
     return projects
@@ -245,13 +185,10 @@ def load_projects() -> list[ProjectInfo]:
 
 
 def build_game_annotation(p: ProjectInfo) -> str:
-    """Build a tag string like '(sound, versioned v4, walkthrough+regtest, seed:2)'."""
+    """Build a tag string like '(sound, walkthrough+regtest, seed:2)'."""
     tags = []
     if p.sound:
         tags.append("sound")
-    if p.versioned:
-        ver = f"versioned {p.current_version}" if p.current_version else "versioned"
-        tags.append(ver)
     # Test types
     test_parts = []
     if p.has_walkthrough:
@@ -270,7 +207,6 @@ def prompt_game(
     *,
     needs_walkthrough: bool = False,
     needs_regtest: bool = False,
-    needs_versioned: bool = False,
 ) -> ProjectInfo:
     """Prompt the user to select a game, filtered by requirements."""
     eligible = projects
@@ -278,8 +214,6 @@ def prompt_game(
         eligible = [p for p in eligible if p.has_walkthrough]
     if needs_regtest:
         eligible = [p for p in eligible if p.has_regtest]
-    if needs_versioned:
-        eligible = [p for p in eligible if p.versioned and p.compilable_versions]
 
     if not eligible:
         filters = []
@@ -287,8 +221,6 @@ def prompt_game(
             filters.append("walkthrough")
         if needs_regtest:
             filters.append("regtest")
-        if needs_versioned:
-            filters.append("versioned")
         print(f"No projects match filters: {', '.join(filters)}")
         sys.exit(1)
 
@@ -303,44 +235,6 @@ def prompt_game(
         ).execute()
     )
     return next(p for p in projects if p.name == game_name)
-
-
-# ---------------------------------------------------------------------------
-# Version picker UI
-# ---------------------------------------------------------------------------
-
-
-def prompt_versions_checkbox(project: ProjectInfo) -> list[str]:
-    """Prompt with checkbox to select compilable versions."""
-    choices = []
-    for v in project.compilable_versions:
-        binary_type = detect_version_binary_type(project.dir, project.name, v)
-        label = f"{v}  ({binary_type})"
-        if v == project.current_version:
-            label += " [current]"
-        choices.append({"name": label, "value": v, "enabled": v == project.current_version})
-
-    selected = prompt_or_cancel(
-        lambda: inquirer.checkbox(
-            message="Select versions to recompile:",
-            choices=choices,
-            pointer=">",
-        ).execute()
-    )
-    if not selected:
-        print("No versions selected.")
-        sys.exit(0)
-    return selected
-
-
-def prompt_version_text(project: ProjectInfo) -> str:
-    """Prompt for a single version string (text input with default)."""
-    default = project.current_version or ""
-    return prompt_or_cancel(
-        lambda: inquirer.text(
-            message="Version:", default=default
-        ).execute()
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -420,10 +314,6 @@ def confirm_and_run(commands: list[tuple[list[str], str | None]]):
 # Shared command builders (return list[str] for subprocess)
 def pipeline_cmd(game: str, *args: str) -> list[str]:
     return py_cmd(PIPELINE_PY, game, *args)
-
-
-def snapshot_cmd(game: str, version: str) -> list[str]:
-    return py_cmd(SNAPSHOT_PY, game, version, "--update")
 
 
 def publish_cmd(game: str, message: str = "") -> list[str]:
@@ -524,32 +414,11 @@ def preset_build_test(projects: list[ProjectInfo]):
 
 
 def preset_release(projects: list[ProjectInfo]):
-    """Release version (compile + test + snapshot + push)."""
+    """Release (compile + test + push)."""
     project = prompt_game(projects)
-
-    if project.versioned:
-        version = prompt_version_text(project)
-        confirm_and_run(
-            [
-                (
-                    pipeline_cmd(
-                        project.name, "--ship", "--version", version, "--force"
-                    ),
-                    None,
-                )
-            ]
-        )
-    else:
-        confirm_and_run(
-            [
-                (
-                    pipeline_cmd(
-                        project.name, "compile", "test", "push", "--force"
-                    ),
-                    None,
-                )
-            ]
-        )
+    confirm_and_run(
+        [(pipeline_cmd(project.name, "compile", "test", "push", "--force"), None)]
+    )
 
 
 # --- Test ---
@@ -621,18 +490,6 @@ def preset_find_seeds(projects: list[ProjectInfo]):
 
 
 # --- Publish & Serve ---
-
-
-def preset_recompile_versions(projects: list[ProjectInfo]):
-    """Recompile frozen versions."""
-    project = prompt_game(projects, needs_versioned=True)
-    selected = prompt_versions_checkbox(project)
-
-    commands: list[tuple[str, str | None]] = []
-    for v in selected:
-        commands.append((snapshot_cmd(project.name, v), None))
-
-    confirm_and_run(commands)
 
 
 def preset_publish(projects: list[ProjectInfo]):
@@ -763,23 +620,13 @@ def preset_full_pipeline(projects: list[ProjectInfo]):
     """Full pipeline."""
     project = prompt_game(projects)
 
-    version = ""
-    if project.versioned:
-        version = prompt_version_text(project)
-
     message = prompt_or_cancel(
         lambda: inquirer.text(
             message="Commit message (blank = default):", default=""
         ).execute()
     )
 
-    if project.versioned and version:
-        cmd = pipeline_cmd(
-            project.name, "--ship", "--version", version, "--force"
-        )
-    else:
-        cmd = pipeline_cmd(project.name, "--all", "--force")
-
+    cmd = pipeline_cmd(project.name, "--all", "--force")
     if message.strip():
         cmd.extend(["--message", message.strip()])
 
@@ -790,7 +637,7 @@ def preset_custom(projects: list[ProjectInfo]):
     """Custom (pick stages)."""
     project = prompt_game(projects)
 
-    all_stages = ["compile", "test", "snapshot", "push"]
+    all_stages = ["compile", "test", "push"]
     stages = prompt_or_cancel(
         lambda: inquirer.checkbox(
             message="Select stages:",
@@ -802,10 +649,6 @@ def preset_custom(projects: list[ProjectInfo]):
         print("No stages selected.")
         sys.exit(0)
 
-    version = ""
-    if "snapshot" in stages and project.versioned:
-        version = prompt_version_text(project)
-
     message = ""
     if "push" in stages:
         message = prompt_or_cancel(
@@ -815,8 +658,6 @@ def preset_custom(projects: list[ProjectInfo]):
         )
 
     cmd = pipeline_cmd(project.name, *stages, "--force")
-    if version:
-        cmd.extend(["--version", version])
     if message.strip():
         cmd.extend(["--message", message.strip()])
 
@@ -842,7 +683,7 @@ PRESETS = [
         "value": preset_build_test,
     },
     {
-        "name": "Release version",
+        "name": "Release (compile + test + push)",
         "value": preset_release,
     },
     Separator("--- Test ---"),
@@ -866,10 +707,6 @@ PRESETS = [
     {
         "name": "Publish update",
         "value": preset_publish,
-    },
-    {
-        "name": "Recompile frozen versions",
-        "value": preset_recompile_versions,
     },
     {
         "name": "Serve locally",
