@@ -186,7 +186,7 @@
   {
     "id": "haunted-house",
     "title": "Haunted House",
-    "sourceLabel": "haunted-house.ni",
+    "sourceLabel": "HAUNTED.BAS",
     "playUrl": "/haunted-house/play.html",
     "walkthroughUrl": "/haunted-house/walkthrough.html",
     "landingUrl": "/haunted-house/",
