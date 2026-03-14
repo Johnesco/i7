@@ -206,20 +206,6 @@
     ]
   },
   {
-    "id": "magic-realm",
-    "title": "Magic Realm",
-    "sourceLabel": "MAGIC.BAS",
-    "playUrl": "/magic-realm/play.html",
-    "walkthroughUrl": "/magic-realm/walkthrough.html",
-    "landingUrl": "/magic-realm/",
-    "sourceBrowser": true,
-    "sourceUrl": "/magic-realm/source.html",
-    "engine": "basic",
-    "tags": [
-      "classic"
-    ]
-  },
-  {
     "id": "seasons",
     "title": "Seasons",
     "sourceLabel": "seasons.ni",
