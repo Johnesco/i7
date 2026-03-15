@@ -24,6 +24,16 @@ PARCHMENT_FILES = [
     "waiting.gif",
 ]
 
+# Mood engine library file
+MOOD_ENGINE_FILE = "mood-engine.js"
+
+
+def copy_mood_engine(dest_dir: Path):
+    """Copy mood-engine.js from the shared hub source to a project's parchment dir."""
+    src = paths.WEB_DIR / "parchment" / MOOD_ENGINE_FILE
+    if src.exists():
+        shutil.copy2(str(src), str(dest_dir / MOOD_ENGINE_FILE))
+
 
 def base64_encode_binary(binary_path: Path) -> str:
     """Read a binary file and return its base64 encoding (no line wrapping)."""

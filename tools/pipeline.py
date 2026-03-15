@@ -92,12 +92,14 @@ def find_binary(project_dir: Path, bin_name: str,
 
 def stage_compile(name: str, project_dir: Path, pipeline_sound: bool,
                   engine: str = "inform7", engine_spec: config.EngineSpec | None = None,
-                  source_file: str = "story.ni"):
+                  source_file: str = "story.ni", force: bool = False):
     if engine == "inform7" or not engine_spec:
         # Original Inform 7 path
         cmd = [sys.executable, str(paths.TOOLS_DIR / "compile.py"), name]
         if pipeline_sound:
             cmd.append("--sound")
+        if force:
+            cmd.append("--force")
     elif engine_spec.build_tool == "setup_ink.py":
         source_path = project_dir / source_file
         title = name.replace("-", " ").replace("_", " ").title()
@@ -410,7 +412,7 @@ def main():
             if stage == "compile":
                 stage_compile(name, project_dir, pipeline_cfg.sound,
                               engine=engine, engine_spec=engine_spec,
-                              source_file=source_file_name)
+                              source_file=source_file_name, force=args.force)
             elif stage == "test":
                 stage_test(name, project_dir, pipeline_cfg,
                            engine_spec=engine_spec)

@@ -142,6 +142,11 @@ def main():
         if (project_dir / "play-template.html").exists():
             setup_cmd.extend(["--template", str(project_dir / "play-template.html")])
             print(f"  Using project template: {project_dir / 'play-template.html'}")
+            # Auto-detect mood engine usage in template
+            tmpl_text = (project_dir / "play-template.html").read_text(encoding="utf-8")
+            if "mood-engine.js" in tmpl_text:
+                setup_cmd.append("--mood")
+                print("  Mood engine detected — will copy mood-engine.js")
         if args.force:
             setup_cmd.append("--force")
 

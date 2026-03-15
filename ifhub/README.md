@@ -48,6 +48,8 @@ The primary interface. A resizable two-pane layout with the game on the left and
 - **Source viewer** — syntax-highlighted Inform 7 with outline navigation and search; iframe mode for ZIL and BASIC source browsers
 - **Walkthrough viewer** — annotated guides with Commands, Game Text, and Replay modes
 - **Sound controls** — mute and volume (shown only for sound-enabled games)
+- **Style selector** — platform theme dropdown with overlay support (games with CSS overlays show their native overlay as default)
+- **Library link** — returns to the landing page (preserves hub filter)
 
 ### Source Browsers
 
@@ -56,6 +58,12 @@ Every game has a source browser with syntax highlighting:
 - **Inform 7** — built-in viewer with Part/Chapter/Section navigation, search, and line numbers
 - **ZIL** — standalone browser covering all ten Infocom source files with annotations
 - **BASIC** — annotated listing with toggle between original code and commentary
+
+### Platform Themes
+
+10 retro platform themes modeled after systems Infocom shipped Z-machine games on. Themes style both the hub chrome (toolbar, sidebar, cards) and the game iframe (buffer text, status bar, scrollbars). Games with CSS overlays (Fever Dream, Zork I v3+, Seasons) can toggle between their native overlay and any platform theme.
+
+Available themes: Classic (default), MS-DOS, Apple II, Commodore 64, Amiga, Macintosh, Atari ST, CP/M (Kaypro), Atari 800, TRS-80.
 
 ### Toolchain
 
@@ -74,7 +82,7 @@ Testing uses native CLI interpreters ([glulxe](https://github.com/erkyrath/glulx
 
 | File | Drives | Fields |
 |------|--------|--------|
-| `games.json` | `app.html` game selector, source viewer, walkthrough viewer | `id`, `playUrl`, `sourceUrl`, `walkthroughUrl`, `sound`, `sourceBrowser` |
+| `games.json` | `app.html` game selector, source viewer, walkthrough viewer | `id`, `playUrl`, `sourceUrl`, `walkthroughUrl`, `sound`, `sourceBrowser`, `overlayLabel` |
 | `cards.json` | `index.html` landing page cards | `id`, `base`, `title`, `meta`, `description`, `versions` |
 
 ## Local Development

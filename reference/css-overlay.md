@@ -1,191 +1,331 @@
-# CSS Overlay System
+# CSS Overlay System — Authoring Guide
 
-How game projects customize the Parchment web player's appearance. Each game's `play.html` layers custom CSS on top of Parchment's base styles to create a themed experience.
+How to add themed color palettes, atmospheric effects, and visual events to a Parchment game's `play.html`.
 
-## Three-Tier Architecture
+## Quick Start
 
-### Tier 1: Parchment Base (shared library)
+Minimal example — two zones, palette transitions on room change:
 
-**Files**: `lib/parchment/parchment.css` + `lib/parchment/main.css`
+1. Copy `tools/web/templates/play-mood.html` to `projects/<game>/play-template.html`
+2. Add a `<script>` block before `</body>`:
 
-Every game loads these via `<link>` tags. They provide:
-- Default GlkOte window classes (`.BufferWindow`, `.GridWindow`, `.Input`)
-- CSS custom property API (`--glkote-*`, `--asyncglk-*`)
-- Light/dark theme toggle via `[data-theme=dark]`
-- Scrollbar, reverse text, error pane styling
-
-### Tier 2: Static CSS Overlay (per-project `play.html`)
-
-Each game's `play.html` contains an inline `<style>` block that overrides Parchment defaults. This is the **minimum** every project should have.
-
-**Standard CSS variables** (set in `:root`):
-
-```css
-:root {
-  /* Buffer window (main game text) */
-  --glkote-buffer-bg: #111;
-  --glkote-buffer-fg: #d4c5a9;
-  --glkote-buffer-reverse-bg: #d4c5a9;
-  --glkote-buffer-reverse-fg: #111;
-  --glkote-buffer-size: 16px;
-  --glkote-buffer-line-height: 1.6;
-
-  /* Grid window (status line) */
-  --glkote-grid-bg: #1c1810;
-  --glkote-grid-fg: #aa9966;
-  --glkote-grid-reverse-bg: #aa9966;
-  --glkote-grid-reverse-fg: #1c1810;
-  --glkote-grid-size: 14px;
-
-  /* Input and system */
-  --glkote-input-fg: #e8d090;
-  --glkote-error-border: #882020;
-  --glkote-warning-border: #3333aa;
-
-  /* Fonts */
-  --glkote-prop-family: "Iowan Old Style", Palatino, Georgia, "Times New Roman", serif;
-  --glkote-mono-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, "Courier New", monospace;
-  --glkote-grid-mono-family: var(--glkote-mono-family);
-
-  /* AsyncGlk UI (dialogs, file chooser) */
-  --asyncglk-ui-bg: #1a1810;
-  --asyncglk-ui-border: #3a2a10;
-  --asyncglk-ui-fg: #d4c5a9;
-  --asyncglk-ui-selected: #2a2010;
-  --asyncglk-ui-textbox: #111;
-}
+```html
+<script>
+MoodEngine.init({
+  palettes: {
+    indoor: { bufferBg:'#1a1008', bufferFg:'#e8c090', gridBg:'#2a1a08', gridFg:'#c09040', accent:'#f0a030', uiBg:'#1a1008', border:'#3a2810' },
+    outdoor: { bufferBg:'#0a1a0e', bufferFg:'#b0d8a0', gridBg:'#0c2010', gridFg:'#70b060', accent:'#60d040', uiBg:'#0a1a0e', border:'#1a3a18' }
+  },
+  roomZones: {
+    'Kitchen': 'indoor',
+    'Living Room': 'indoor',
+    'Garden': 'outdoor',
+    'Forest': 'outdoor'
+  },
+  fallbackZone: 'indoor'
+});
+</script>
 ```
 
-**Standard structural CSS** (same across all projects):
+3. Build: `python tools/compile.py <game> --force`
+
+The engine detects `mood-engine.js` in the template and copies it automatically.
+
+## Architecture
+
+### Three-Tier Model
+
+| Tier | What | Where |
+|------|------|-------|
+| **1. Parchment base** | Default GlkOte classes, `--glkote-*` / `--asyncglk-*` API | `lib/parchment/parchment.css` + `main.css` |
+| **2. Static overlay** | Dark theme, colors, fonts, layout | Inline `<style>` in `play.html` |
+| **3. Dynamic mood** | Zone palettes, room detection, effects | `mood-engine.js` + game-specific CSS/JS |
+
+Simple projects (sample, dracula) use Tiers 1–2 only. Mood projects (zork1 v3, feverdream, seasons) add Tier 3.
+
+### Platform Theme Override
+
+When a user selects a platform theme in the hub's style dropdown (`app.html`), game `play.html` files receive an `ifhub:applyTheme` postMessage containing the theme's game colors and scrollbar properties. The game injects a `<style id="platform-theme-override">` element with `!important` rules that override all three tiers.
+
+Games with CSS overlays (mood palettes, atmospheric effects) additionally add `body.platform-theme-active` to the body element, which triggers suppression CSS rules:
 
 ```css
-html, body { height: 100%; margin: 0; padding: 0; background: #0a0a0a; overflow: hidden; }
-div#gameport { position: absolute; inset: 0; background: #111; }
-.WindowFrame { background: #111; }
-.GridWindow { border-bottom: 1px solid #2a2418; padding: 6px 12px; }
-.BufferWindowInner { padding: 20px 40px; }
-.Input { font-weight: bold; color: #e8d090; caret-color: #e8d090; }
-.Style_user1 { display: none; }
-.Style_header { color: #e8d8b0; }
-.Style_alert { color: #cc8844; }
-.Style_note { color: #aa9966; }
+body.platform-theme-active .crt-scanbar,
+body.platform-theme-active .season-vignette,
+body.platform-theme-active #gameport::before,
+body.platform-theme-active #gameport::after { display: none !important; }
+
+body.platform-theme-active .BufferLine { animation: none !important; }
 ```
 
-**Standard scrollbar and loading pane** (same across all projects):
+Each game only includes rules for its own overlay elements. The suppression CSS is added to the game's existing `<style>` block.
 
-```css
-.BufferWindow::-webkit-scrollbar { width: 8px; }
-.BufferWindow::-webkit-scrollbar-track { background: #1a1a1a; }
-.BufferWindow::-webkit-scrollbar-thumb { background: #3a3020; border-radius: 4px; }
-.BufferWindow::-webkit-scrollbar-thumb:hover { background: #5a4a30; }
+**Key design decisions:**
+- The mood engine (`MoodEngine.init()`) keeps running — it still observes room changes and updates `--mood-*` variables. These just have no visual effect while the platform override style is in place.
+- When the overlay is restored via `ifhub:restoreOverlay`, the override style is removed and `body.platform-theme-active` is removed. The mood state instantly reflects the current room.
+- The `overlayLabel` field in `games.json` controls which games show an overlay option in the hub's style dropdown.
 
-#loadingpane {
-  position: absolute; width: 100%; text-align: center; top: 35%;
-  color: #887755; font-size: 1.2em; font-family: Georgia, "Times New Roman", serif;
-}
-@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-#loadingpane em { animation: pulse 1.5s ease-in-out infinite; }
+**postMessage protocol:**
+
+| Message | Direction | Fields |
+|---------|-----------|--------|
+| `ifhub:applyTheme` | hub → game | `type`, `game` (colors/fonts object), `scrollbar` (thumb/track/hover object) |
+| `ifhub:restoreOverlay` | hub → game | `type` |
+
+### How It Works
+
+1. **Houdini `@property`** registers 7 `--mood-*` CSS variables as `<color>` type — enables smooth interpolation
+2. `:root` wires `transition` on all 7 variables (default 1.2s)
+3. GlkOte variables (`--glkote-buffer-bg`, etc.) are synced by JS, so the entire UI transitions
+4. `MoodEngine` attaches a `MutationObserver` on `.GridWindow` to detect room changes from the status bar
+5. Room → zone lookup triggers `applyPalette()` which sets all CSS variables
+6. Optional hooks fire for game-specific effects (particles, body class toggles, etc.)
+
+### File Layout
+
+```
+tools/web/
+├── parchment/
+│   ├── mood-engine.js           ← Shared mood engine library
+│   └── (12 Parchment files)     ← jQuery, parchment.js, quixe.js, etc.
+└── templates/
+    ├── play-mood.html           ← Mood-enabled base template
+    ├── play-parchment.html      ← Standard (non-mood) Parchment template
+    └── ...
 ```
 
-Simple projects (sample, dracula) use only Tier 2. The CSS template comes from `tools/web/play-template.html`.
+## API Reference
 
-### Tier 3: Dynamic Mood System (advanced projects)
+### `MoodEngine.init(config)`
 
-Projects with atmospheric effects (zork1 v3, feverdream) add two more layers on top of the static overlay:
+Initialize the mood engine. Call once after DOM is ready (or in a DOMContentLoaded handler).
 
-#### 3a. Houdini `@property` Color Transitions
+**Config properties:**
 
-Registers CSS custom properties as `<color>` type so CSS can smoothly interpolate them:
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `palettes` | `Object` | Yes | Zone → palette map. Each palette: `{ bufferBg, bufferFg, gridBg, gridFg, accent, uiBg, border }` |
+| `roomZones` | `Object` | Yes | Room name → zone key map |
+| `fallbackZone` | `string` | No | Zone for unmapped rooms. If omitted, unmapped rooms are ignored |
+| `onRoomChange` | `function(roomName, zone)` | No | Called on every room change (even within same zone) |
+| `onBufferText` | `function(text, prevText)` | No | Called when new text appears in the buffer window |
+| `resolvePalette` | `function(zone, palettes) → palette` | No | Override palette selection (for state-dependent themes) |
+| `intro` | `Object` | No | Intro mode config: `{ bodyClass, fadeClass, fadeDuration }` |
 
-```css
-@property --mood-buffer-bg { syntax: '<color>'; inherits: true; initial-value: #111111; }
-@property --mood-buffer-fg { syntax: '<color>'; inherits: true; initial-value: #d4c5a9; }
-@property --mood-grid-bg   { syntax: '<color>'; inherits: true; initial-value: #1c1810; }
-@property --mood-grid-fg   { syntax: '<color>'; inherits: true; initial-value: #aa9966; }
-@property --mood-accent    { syntax: '<color>'; inherits: true; initial-value: #e8d090; }
-@property --mood-ui-bg     { syntax: '<color>'; inherits: true; initial-value: #111111; }
-@property --mood-border    { syntax: '<color>'; inherits: true; initial-value: #2a2418; }
-```
+### `MoodEngine.refresh()`
 
-The `--mood-*` variables are set on `:root` with `transition: 1.2s ease-in-out`. GlkOte variables are synced to them by JavaScript, so the entire UI transitions smoothly when the mood changes.
+Re-apply the current zone's palette. Call after state changes that affect palette selection (e.g., post-fungus override in Fever Dream).
 
-#### 3b. JavaScript MutationObserver Engine
+### `MoodEngine.currentRoom` / `MoodEngine.currentZone`
 
-An IIFE in `play.html` that:
+Read-only. Current room name and zone key.
 
-1. **Observes room changes** — MutationObserver on `.GridWindow` detects status line updates
-2. **Extracts room name** — reads first `.GridLine` text content
-3. **Maps room to zone** — lookup in a `ROOM_ZONES` object (e.g., `'Forest Path': 'forest'`)
-4. **Applies palette** — sets `--mood-*` and `--glkote-*` CSS variables via `document.documentElement.style.setProperty()`
-5. **Watches buffer text** — second MutationObserver on `.BufferWindow` matches text patterns for event triggers
-6. **Detects user input** — tracks `lastNodeText` from previous buffer mutation (Parchment WASM mode does NOT wrap input in `.Input` spans)
+## Palette Design
 
-#### Zone Palettes
+Each palette defines 7 color properties:
 
-Each project defines its own zone palette map:
+| Property | Controls | Tips |
+|----------|----------|------|
+| `bufferBg` | Main text area background | Keep dark (#0a–#1a range) |
+| `bufferFg` | Main text color | Ensure 4.5:1+ contrast with bufferBg |
+| `gridBg` | Status bar background | Slightly lighter/different than bufferBg |
+| `gridFg` | Status bar text | Readable against gridBg |
+| `accent` | Input text, headers, highlights | Most visually distinct color |
+| `uiBg` | Gameport, dialogs, frame | Match or near-match bufferBg |
+| `border` | Window borders, separators | Subtle, darker than uiBg |
+
+**Status bar note**: The mood template uses a reversed status bar — `bufferFg` as background, dark text on top. This makes the status bar pop as a bright banner. Adjust `bufferFg` knowing it also serves as the status bar background.
+
+### Example palettes
 
 ```javascript
-var PALETTES = {
-  forest:  { bufferBg:'#0a1a0e', bufferFg:'#b0d8a0', gridBg:'#0c2010', ... },
-  cave:    { bufferBg:'#101114', bufferFg:'#c0c4c0', gridBg:'#14161a', ... },
-  water:   { bufferBg:'#0c1018', bufferFg:'#b8c8d4', gridBg:'#101420', ... },
-  // ...
-};
+// Warm underground
+cave: { bufferBg:'#101114', bufferFg:'#c0c4c0', gridBg:'#14161a', gridFg:'#8090a0', accent:'#7090b0', uiBg:'#101114', border:'#1e2028' }
 
-var ROOM_ZONES = {
-  'Forest Path': 'forest',
-  'Kitchen': 'house',
-  'Cellar': 'cave',
-  // ...
-};
+// Cool water
+water: { bufferBg:'#0c1018', bufferFg:'#b8c8d4', gridBg:'#101420', gridFg:'#6688aa', accent:'#60a0c0', uiBg:'#0c1018', border:'#162030' }
+
+// Warm interior
+house: { bufferBg:'#1a1008', bufferFg:'#e8c090', gridBg:'#2a1a08', gridFg:'#c09040', accent:'#f0a030', uiBg:'#1a1008', border:'#3a2810' }
 ```
 
-#### Effect Triggers
+## Adding Effects
 
-Body class toggles activate CSS animations:
+### Room change hook — body class toggles
 
-| Effect | Class | Trigger Pattern |
-|--------|-------|-----------------|
-| CRT terminal intro | `body.crt-intro` | Startup (removed after first input) |
-| Medical monitor intro | `body.monitor-intro` | Startup (Fever Dream) |
-| Tree canopy + leaves | `body.mood-tree` | Room = "Up a Tree" |
-| Egg explosion | `body.egg-shake` | "taken" + "egg" in buffer |
-| Sword glow | `body.sword-glow-*` | "faint blue glow" in buffer |
-| Glass break | `body.glass-shake` | "glass shatters" in buffer |
-| Fungus consumed | `body.fungus-ripple`, `body.state-fungus` | "It tastes of nothing" |
-| Spray exposure | `body.spray-glitch`, `body.state-spray` | "Something cold and chemical" |
+Toggle CSS effects when entering/leaving specific rooms:
 
-#### Overlay Layers
+```javascript
+MoodEngine.init({
+  palettes: { /* ... */ },
+  roomZones: { /* ... */ },
+  onRoomChange: function(roomName, zone) {
+    document.body.classList.toggle('mood-forest', roomName === 'Forest Path');
+    particleSystem.switchTo(zone);
+  }
+});
+```
 
-Pseudo-elements on `#gameport` provide visual effect layers:
+```css
+body.mood-forest #gameport::before {
+  background: radial-gradient(/* dappled light */);
+  opacity: 1;
+}
+```
 
-- `#gameport::before` — dappled light, canopy glow, scanline overlays
-- `#gameport::after` — vignettes, color washes, breathing effects
+### Buffer text hook — event triggers
 
-Dynamic DOM injection creates particles (`.leaf`, `.egg-spark`, `.glass-shard`) with per-element CSS variable parameters for randomized animation.
+Match game output text to trigger one-shot visual effects:
 
-## Which Projects Use What
+```javascript
+MoodEngine.init({
+  palettes: { /* ... */ },
+  roomZones: { /* ... */ },
+  onBufferText: function(text, prevText) {
+    if (/glass shatters/i.test(text)) triggerGlassBreak();
+    if (/faint blue glow/i.test(text)) setSwordGlow('faint');
+    // prevText is the lowercase text of the previous buffer node
+    if (/^taken\.?$/i.test(text) && /\begg\b/.test(prevText)) triggerTreeSway();
+  }
+});
+```
 
-| Project | Tier 1 | Tier 2 (Static) | Tier 3 (Dynamic) |
-|---------|--------|-----------------|-------------------|
-| sample | Parchment base | Dark theme, standard layout | None |
-| dracula | Parchment base | Dark theme, standard layout | None |
-| feverdream | Parchment base | Dark theme, custom colors | Mood zones, event effects |
-| zork1 v1-v2 | Parchment base | Dark theme, standard layout | None |
-| zork1 v3 | Parchment base | Dark theme, larger fonts | Mood zones, CRT, tree, egg, sword |
+### Palette overrides — state-dependent themes
 
-## IF Hub Shared Player
+Change palettes based on game state (e.g., after consuming an item):
 
-`ifhub/play.html` version-gates Tier 3 effects. When the binary path matches `zork1-v(\d+)` with version >= 3, it adds `body.zork1-enhanced` and activates the mood system. Other games get Tier 2 static theming only.
+```javascript
+var fungusConsumed = false;
+var PALETTES_FUNGUS = { ward: { /* warmer colors */ }, /* ... */ };
 
-## Adding Mood Theming to a New Project
+MoodEngine.init({
+  palettes: PALETTES,
+  roomZones: ROOM_ZONES,
+  resolvePalette: function(zone, palettes) {
+    if (fungusConsumed && PALETTES_FUNGUS[zone]) return PALETTES_FUNGUS[zone];
+    return null;  // null = use default palette
+  },
+  onBufferText: function(text) {
+    if (/It tastes of nothing/i.test(text)) {
+      fungusConsumed = true;
+      // Re-apply palette with new override
+      setTimeout(function() { MoodEngine.refresh(); }, 2500);
+    }
+  }
+});
+```
 
-1. Add Houdini `@property` declarations for the 7 mood variables
-2. Set `:root` transitions on all `--mood-*` variables
-3. Wire GlkOte variables to mood variables: `--glkote-buffer-bg: var(--mood-buffer-bg)` etc.
-4. Define `PALETTES` and `ROOM_ZONES` in a `<script>` IIFE
-5. Attach MutationObservers for `.GridWindow` (room changes) and `.BufferWindow` (text events)
-6. Add CSS for body class toggles and `@keyframes` animations
-7. Use `#gameport::before` / `::after` pseudo-elements for overlay effects
+### Intro mode — startup effect until first input
 
-See `projects/zork1/play.html` (most complete example) or `projects/feverdream/play.html` for reference implementations.
+Add a body class on startup (CRT terminal, medical monitor, etc.) that fades out after the player's first command:
+
+```javascript
+MoodEngine.init({
+  palettes: { /* ... */ },
+  roomZones: { /* ... */ },
+  intro: {
+    bodyClass: 'crt-intro',     // added on init
+    fadeClass: 'crt-fade',      // replaces bodyClass on first input
+    fadeDuration: 2500          // ms before fadeClass is removed
+  }
+});
+```
+
+```css
+body.crt-intro .BufferWindow {
+  color: #33ff33 !important;
+  font-family: monospace;
+  text-shadow: 0 0 5px rgba(51,255,51,0.5);
+}
+body.crt-fade .BufferWindow {
+  transition: color 2s ease, text-shadow 2s ease;
+}
+```
+
+The engine uses a settle-then-mutate strategy: after the initial output burst quiets (1s), the next DOM mutation is treated as user input. This works with both WASM (Emglken) and non-WASM (Quixe) engines.
+
+### Pseudo-element overlays
+
+`#gameport::before` and `::after` are scaffolded in the mood template with `opacity: 0`. Activate them via body class:
+
+```css
+body.mood-forest #gameport::before {
+  background: /* effect */;
+  opacity: 1;
+}
+```
+
+### Particle injection
+
+Create DOM elements for particles (snow, leaves, sparks) with per-element CSS variables for randomized animation:
+
+```javascript
+var flake = document.createElement('div');
+flake.style.cssText =
+  'position:absolute;border-radius:50%;' +
+  'width:3px;height:3px;background:rgba(200,215,235,0.3);' +
+  '--sf-o:0.3;animation:snowfall 12s linear infinite;';
+container.appendChild(flake);
+```
+
+## Template Setup
+
+### Creating a mood project from scratch
+
+1. Copy `tools/web/templates/play-mood.html` → `projects/<game>/play-template.html`
+2. Adjust initial colors in `@property` declarations and `:root` to match your first zone
+3. Add game-specific CSS (particle `@keyframes`, body class toggles, etc.)
+4. Add a `<script>` block before `</body>` that calls `MoodEngine.init({...})`
+5. Build: `python tools/compile.py <game> --force`
+
+### How templates survive rebuilds
+
+The overlay lives in `play-template.html` (input). `compile.py` detects it and passes `--template` to `setup_web.py`, which generates `play.html` (output) with placeholders substituted. The template is never overwritten by builds.
+
+If the template references `mood-engine.js`, `compile.py` auto-detects it and passes `--mood` to copy the library alongside the Parchment files.
+
+### Manual setup with `setup_web.py`
+
+```bash
+python tools/web/setup_web.py \
+    --title "My Game" --ulx path/to/game.ulx --out path/to/project \
+    --template path/to/play-template.html --mood --force
+```
+
+The `--mood` flag:
+- Copies `mood-engine.js` to `lib/parchment/`
+- Uses `templates/play-mood.html` as default template (if no `--template` given)
+
+## Project Reference
+
+| Project | Tiers | Mood zones | Effects | Template |
+|---------|-------|------------|---------|----------|
+| sample | 1–2 | None | Static dark theme | Standard |
+| dracula | 1–2 | None | Static dark theme | Standard |
+| seasons | 1–3 | 4 (winter, spring, summer, fall) | Particle systems, vignette, text glow | `play-template.html` + `mood-engine.js` |
+| zork1 v3 | 1–3 | 10 (forest, house, cave, water, ...) | CRT intro, tree canopy, egg flash, sword glow | `play-template.html` (inline engine) |
+| feverdream | 1–3 | 7 (ward, treatment, basement, ...) | Monitor intro, glass break, fungus, spray | `play-template.html` (inline engine) |
+
+Seasons uses the shared `mood-engine.js`. Zork1 and feverdream still use inline mood engines (future migration).
+
+## Troubleshooting
+
+### GlkOte timing
+
+The engine polls for `.GridWindow` every 500ms because GlkOte creates it dynamically after the game starts. If you see no palette changes, check that the game actually creates a status bar (grid window).
+
+### WASM input detection
+
+Parchment's WASM engine (Emglken/Glulxe) does NOT wrap user input in `.Input` spans. The intro mode uses a settle-then-mutate strategy: after initial output quiets for 1s, the next buffer mutation is treated as user input. If the intro doesn't end, increase the settle timeout.
+
+### `!important` overrides
+
+GlkOte sets inline `background-color` and `color` styles directly on window elements. The mood template uses `!important` on `.GridWindow`, `.BufferWindow`, and `.WindowFrame` to override these. If your palette colors aren't showing, check that `!important` is present.
+
+### Transition duration
+
+The mood template defaults to 1.2s transitions. Seasons uses 2s for a slower, more ambient feel. Adjust in both `:root` `transition` and structural CSS (`.GridWindow`, `.BufferWindow`, `div#gameport`).
+
+### Cache-busting
+
+`setup_web.py` appends `?v=<timestamp>` to `.js` and `.css` references in `play.html`. This includes `mood-engine.js`. If you update the engine and don't see changes, rebuild with `--force`.

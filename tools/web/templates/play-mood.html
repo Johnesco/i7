@@ -1,8 +1,19 @@
-<!--
-  play-parchment.html — Inform 7 / Z-machine player template (setup_web.py, compile.py)
+<!-- Template tokens (substituted by setup_web.py and compile.py):
+     __TITLE__      — Game title (from story.ni or games.json)
+     __STORY_FILE__ — Binary filename, e.g. "game.ulx.js" or "game.gblorb.js"
+     __STORY_PATH__ — Full path to binary, e.g. "lib/parchment/game.ulx.js"
+     __LIB_PATH__   — Parchment library path, e.g. "lib/parchment/" or "../../lib/parchment/"
 
-  Tokens: TITLE, STORY_FILE, STORY_PATH, LIB_PATH
-  Engine: Parchment 2025.1 (Quixe/Glulxe for Glulx, bocfel for Z-machine)
+  Mood-enabled play template. Includes:
+  - Houdini @property declarations for 7 mood color variables
+  - :root transition wiring (1.2s default)
+  - GlkOte/AsyncGlk variable binding via var(--mood-*)
+  - Structural CSS (gameport, WindowFrame, GridWindow, BufferWindow, scrollbar, loading)
+  - #gameport::before/::after scaffolding (opacity:0, ready for game CSS to activate)
+  - mood-engine.js script tag
+
+  Games create their own play-template.html by copying this, adjusting initial
+  colors, adding CSS effects, and adding a <script> block calling MoodEngine.init().
 -->
 <!DOCTYPE html>
 <html lang="en">
@@ -14,30 +25,58 @@
 <link rel="stylesheet" href="__LIB_PATH__main.css">
 
 <style>
+/* ── Houdini @property — register as <color> for smooth transitions ── */
+@property --mood-buffer-bg { syntax: '<color>'; inherits: true; initial-value: #111111; }
+@property --mood-buffer-fg { syntax: '<color>'; inherits: true; initial-value: #c8c4b8; }
+@property --mood-grid-bg   { syntax: '<color>'; inherits: true; initial-value: #1a1814; }
+@property --mood-grid-fg   { syntax: '<color>'; inherits: true; initial-value: #908870; }
+@property --mood-accent    { syntax: '<color>'; inherits: true; initial-value: #d0b870; }
+@property --mood-ui-bg     { syntax: '<color>'; inherits: true; initial-value: #111111; }
+@property --mood-border    { syntax: '<color>'; inherits: true; initial-value: #2a2418; }
+
 :root {
-  --glkote-buffer-bg: #111;
-  --glkote-buffer-fg: #d4c5a9;
-  --glkote-buffer-reverse-bg: #d4c5a9;
-  --glkote-buffer-reverse-fg: #111;
+  /* ── Mood palette — neutral dark defaults, updated dynamically by JS ── */
+  --mood-buffer-bg: #111111;
+  --mood-buffer-fg: #c8c4b8;
+  --mood-grid-bg: #1a1814;
+  --mood-grid-fg: #908870;
+  --mood-accent: #d0b870;
+  --mood-ui-bg: #111111;
+  --mood-border: #2a2418;
+
+  transition:
+    --mood-buffer-bg 1.2s ease-in-out,
+    --mood-buffer-fg 1.2s ease-in-out,
+    --mood-grid-bg 1.2s ease-in-out,
+    --mood-grid-fg 1.2s ease-in-out,
+    --mood-accent 1.2s ease-in-out,
+    --mood-ui-bg 1.2s ease-in-out,
+    --mood-border 1.2s ease-in-out;
+
+  /* ── GlkOte / AsyncGlk base theme ── */
+  --glkote-buffer-bg: #111111;
+  --glkote-buffer-fg: #c8c4b8;
+  --glkote-buffer-reverse-bg: #c8c4b8;
+  --glkote-buffer-reverse-fg: #111111;
   --glkote-buffer-size: 16px;
   --glkote-buffer-line-height: 1.6;
-  --glkote-grid-bg: #1c1810;
-  --glkote-grid-fg: #aa9966;
-  --glkote-grid-reverse-bg: #aa9966;
-  --glkote-grid-reverse-fg: #1c1810;
+  --glkote-grid-bg: #1a1814;
+  --glkote-grid-fg: #908870;
+  --glkote-grid-reverse-bg: #908870;
+  --glkote-grid-reverse-fg: #1a1814;
   --glkote-grid-size: 14px;
-  --glkote-input-fg: #e8d090;
+  --glkote-input-fg: #d0b870;
   --glkote-error-border: #882020;
   --glkote-warning-border: #3333aa;
   --glkote-prop-family: "Iowan Old Style", Palatino, Georgia, "Times New Roman", serif;
   --glkote-mono-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, "Courier New", monospace;
   --glkote-grid-mono-family: var(--glkote-mono-family);
 
-  --asyncglk-ui-bg: #1a1810;
-  --asyncglk-ui-border: #3a2a10;
-  --asyncglk-ui-fg: #d4c5a9;
-  --asyncglk-ui-selected: #2a2010;
-  --asyncglk-ui-textbox: #111;
+  --asyncglk-ui-bg: #111111;
+  --asyncglk-ui-border: #2a2418;
+  --asyncglk-ui-fg: #c8c4b8;
+  --asyncglk-ui-selected: #1a1810;
+  --asyncglk-ui-textbox: #0a0a08;
 }
 
 html, body {
@@ -51,52 +90,96 @@ html, body {
 div#gameport {
   position: absolute;
   inset: 0;
-  background: #111;
+  background: var(--mood-ui-bg);
+  transition: background-color 1.2s ease-in-out;
 }
 
+/* Overlay layers for game-specific effects (opacity:0 by default) */
+#gameport::before,
+#gameport::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+}
+
+#gameport::before { z-index: 10000; }
+#gameport::after  { z-index: 10001; }
+
 .WindowFrame {
-  background: #111;
+  background: var(--mood-ui-bg) !important;
+}
+
+.WindowFrame:has(.GridWindow) {
+  background: var(--mood-buffer-fg) !important;
+  transition: background-color 1.2s ease-in-out;
+}
+
+.GridWindow,
+.GridWindow * {
+  background-color: var(--mood-buffer-fg) !important;
+  color: #0a0a0a !important;
+  font-weight: bold;
+  transition: background-color 1.2s ease-in-out, color 1.2s ease-in-out;
 }
 
 .GridWindow {
   padding: 6px 12px;
 }
 
+.BufferWindow {
+  background-color: var(--mood-buffer-bg) !important;
+  color: var(--mood-buffer-fg) !important;
+  transition: background-color 1.2s ease-in-out, color 1.2s ease-in-out;
+}
+
 .BufferWindowInner {
   padding: 20px 40px;
+  text-rendering: optimizeLegibility;
 }
 
 .Input {
   font-weight: bold;
-  color: #e8d090;
-  caret-color: #e8d090;
+  color: var(--mood-accent);
+  caret-color: var(--mood-accent);
+  caret-shape: underscore;
+  transition: color 1.2s ease-in-out, caret-color 1.2s ease-in-out;
 }
+
+/* ── Text fade-in ── */
+@keyframes bufferFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.BufferLine { animation: bufferFadeIn 0.3s ease-out; }
 
 .Style_user1 { display: none; }
 
 .Style_header {
-  color: #e8d8b0;
+  color: var(--mood-accent);
+  transition: color 1.2s ease-in-out;
 }
 
-.Style_alert {
-  color: #cc8844;
-}
+.Style_alert { color: #cc8844; }
+.Style_note  { color: #808898; }
 
-.Style_note {
-  color: #aa9966;
+.BufferWindow {
+  scrollbar-width: thin;
+  scrollbar-color: #282830 transparent;
 }
-
-.BufferWindow::-webkit-scrollbar { width: 8px; }
-.BufferWindow::-webkit-scrollbar-track { background: #1a1a1a; }
-.BufferWindow::-webkit-scrollbar-thumb { background: #3a3020; border-radius: 4px; }
-.BufferWindow::-webkit-scrollbar-thumb:hover { background: #5a4a30; }
+.BufferWindow::-webkit-scrollbar { width: 6px; }
+.BufferWindow::-webkit-scrollbar-track { background: transparent; }
+.BufferWindow::-webkit-scrollbar-thumb { background: #282830; border-radius: 3px; }
+.BufferWindow::-webkit-scrollbar-thumb:hover { background: #404050; }
 
 #loadingpane {
   position: absolute;
   width: 100%;
   text-align: center;
   top: 35%;
-  color: #887755;
+  color: #607080;
   font-size: 1.2em;
   font-family: Georgia, "Times New Roman", serif;
 }
@@ -109,14 +192,17 @@ div#gameport {
 #loadingpane em {
   animation: pulse 1.5s ease-in-out infinite;
 }
+
+/* ── Platform theme override: suppress mood palette ── */
+body.platform-theme-active div#gameport { transition: none !important; }
+body.platform-theme-active .BufferWindow { transition: none !important; }
+body.platform-theme-active .BufferLine { animation: none !important; }
+body.platform-theme-active .Input { color: inherit !important; caret-color: inherit !important; transition: none !important; }
 </style>
 
 <script src="__LIB_PATH__jquery.min.js"></script>
 <script src="__LIB_PATH__ie.js" nomodule></script>
 <script>
-    // story_name is REQUIRED — parchment.js calls .substring() on it to detect
-    // the file type (.ulx.js, .gblorb.js, .z3.js). Without it you get:
-    //   TypeError: Cannot read properties of undefined (reading 'substring')
     parchment_options = {
         default_story: ['__STORY_PATH__'],
         lib_path: '__LIB_PATH__',
@@ -127,6 +213,7 @@ div#gameport {
 </script>
 <script src="__LIB_PATH__parchment.js"></script>
 <script src="__LIB_PATH__resourcemap.js"></script>
+<script src="__LIB_PATH__mood-engine.js"></script>
 <script>
     window.addEventListener('pageshow', function(e) {
         if (e.persisted) { window.location.reload(); }
@@ -139,15 +226,15 @@ div#gameport {
 <div id="gameport">
   <div id="windowport">
     <noscript>
-      <div style="text-align:center; padding:40px; color:#aa6644;">
+      <div style="text-align:center; padding:40px; color:#708090;">
         <h2>__TITLE__</h2>
         <p>JavaScript is required to play this game.</p>
       </div>
     </noscript>
   </div>
   <div id="loadingpane">
-    <div style="margin-bottom:20px; font-size:1.4em; color:#aa9966; letter-spacing:4px;">__TITLE__</div>
-    <img src="__LIB_PATH__waiting.gif" alt="Loading" style="opacity:0.5"><br>
+    <div style="margin-bottom:20px; font-size:1.4em; color:#607080; letter-spacing:4px;">__TITLE__</div>
+    <img src="__LIB_PATH__waiting.gif" alt="Loading" style="opacity:0.4"><br>
     <em>Loading...</em>
   </div>
   <div id="errorpane" style="display:none;">

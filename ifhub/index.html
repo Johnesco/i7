@@ -10,9 +10,9 @@
 
 html {
   height: 100%;
-  background: #0a0a0a;
-  color: #d4c5a9;
-  font-family: Georgia, "Times New Roman", serif;
+  background: var(--page-bg, #0a0a0a);
+  color: var(--page-fg, #d4c5a9);
+  font-family: var(--font-family, Georgia, "Times New Roman", serif);
 }
 
 body {
@@ -25,24 +25,31 @@ body {
 
 h1 {
   font-size: 1.8em;
-  color: #e8d8b0;
+  color: var(--heading-fg, #e8d8b0);
   letter-spacing: 1px;
   margin-bottom: 6px;
 }
 
+.title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .subtitle {
   font-style: italic;
-  color: #aa9966;
+  color: var(--muted, #aa9966);
   margin-bottom: 40px;
 }
 
 h2 {
   font-size: 1.2em;
-  color: #c4b48a;
+  color: var(--heading-fg, #c4b48a);
   margin-top: 48px;
   margin-bottom: 16px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #2a2418;
+  border-bottom: 1px solid var(--border, #2a2418);
 }
 
 p {
@@ -50,15 +57,15 @@ p {
 }
 
 a {
-  color: #e8d090;
+  color: var(--accent, #e8d090);
   text-decoration: none;
-  border-bottom: 1px solid #5a4a30;
+  border-bottom: 1px solid var(--border-hover, #5a4a30);
   transition: color 0.15s, border-color 0.15s;
 }
 
 a:hover {
-  color: #ffe8a0;
-  border-bottom-color: #aa9966;
+  color: var(--btn-hover-bg, #ffe8a0);
+  border-bottom-color: var(--muted, #aa9966);
 }
 
 .hub-bar {
@@ -71,48 +78,48 @@ a:hover {
 .hub-bar a {
   padding: 4px 14px;
   font-size: 0.88em;
-  border: 1px solid #2a2418;
+  border: 1px solid var(--border, #2a2418);
   border-radius: 16px;
-  color: #aa9966;
+  color: var(--muted, #aa9966);
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .hub-bar a:hover {
-  background: #1a1610;
-  color: #e8d090;
-  border-color: #5a4a30;
+  background: var(--surface-bg, #1a1610);
+  color: var(--accent, #e8d090);
+  border-color: var(--border-hover, #5a4a30);
 }
 
 .hub-bar a.active {
-  background: #e8d090;
-  color: #0a0a0a;
-  border-color: #e8d090;
+  background: var(--accent, #e8d090);
+  color: var(--page-bg, #0a0a0a);
+  border-color: var(--accent, #e8d090);
 }
 
 .game-card {
   margin-bottom: 28px;
   padding: 20px 24px;
-  background: #111;
-  border: 1px solid #1e1a14;
+  background: var(--card-bg, #111);
+  border: 1px solid var(--card-border, #1e1a14);
   border-radius: 6px;
 }
 
 .game-card h3 {
-  color: #c4b48a;
+  color: var(--heading-fg, #c4b48a);
   font-size: 1.05em;
   margin-bottom: 4px;
 }
 
 .game-card .game-meta {
   font-size: 0.85em;
-  color: #887755;
+  color: var(--badge-fg, #887755);
   font-style: italic;
   margin-bottom: 10px;
 }
 
 .game-card p {
   font-size: 0.95em;
-  color: #b0a080;
+  color: var(--page-fg, #b0a080);
   margin-bottom: 14px;
 }
 
@@ -127,10 +134,10 @@ a:hover {
   flex: 1;
   padding: 8px 10px;
   font-size: 0.95em;
-  font-family: Georgia, "Times New Roman", serif;
-  background: #1a1610;
-  color: #d4c5a9;
-  border: 1px solid #2a2418;
+  font-family: var(--font-family, Georgia, "Times New Roman", serif);
+  background: var(--surface-bg, #1a1610);
+  color: var(--page-fg, #d4c5a9);
+  border: 1px solid var(--border, #2a2418);
   border-radius: 4px;
   cursor: pointer;
 }
@@ -140,13 +147,13 @@ a:hover {
   align-items: center;
   gap: 5px;
   font-size: 0.85em;
-  color: #aa9966;
+  color: var(--muted, #aa9966);
   white-space: nowrap;
   cursor: pointer;
 }
 
 .card-controls input[type="checkbox"] {
-  accent-color: #e8d090;
+  accent-color: var(--accent, #e8d090);
   width: 14px;
   height: 14px;
   cursor: pointer;
@@ -155,11 +162,11 @@ a:hover {
 .card-controls button {
   padding: 8px 22px;
   font-size: 0.95em;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-family, Georgia, "Times New Roman", serif);
   font-weight: bold;
   letter-spacing: 1px;
-  background: #e8d090;
-  color: #0a0a0a;
+  background: var(--btn-bg, #e8d090);
+  color: var(--btn-fg, #0a0a0a);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -167,7 +174,7 @@ a:hover {
 }
 
 .card-controls button:hover {
-  background: #ffe8a0;
+  background: var(--btn-hover-bg, #ffe8a0);
 }
 
 .game-links {
@@ -185,19 +192,19 @@ a:hover {
 
 .tech-card {
   padding: 16px 18px;
-  background: #111;
-  border: 1px solid #1e1a14;
+  background: var(--card-bg, #111);
+  border: 1px solid var(--card-border, #1e1a14);
   border-radius: 6px;
 }
 
 .tech-card strong {
-  color: #c4b48a;
+  color: var(--heading-fg, #c4b48a);
   font-size: 0.95em;
 }
 
 .tech-card p {
   font-size: 0.88em;
-  color: #998870;
+  color: var(--badge-fg, #998870);
   margin-bottom: 0;
   margin-top: 4px;
 }
@@ -205,14 +212,14 @@ a:hover {
 footer {
   margin-top: 60px;
   padding-top: 20px;
-  border-top: 1px solid #1e1a14;
+  border-top: 1px solid var(--card-border, #1e1a14);
   font-size: 0.85em;
-  color: #665a40;
+  color: var(--footer-fg, #665a40);
 }
 
 footer a {
-  color: #887755;
-  border-bottom-color: #3a3020;
+  color: var(--badge-fg, #887755);
+  border-bottom-color: var(--border-hover, #3a3020);
 }
 
 @media (max-width: 600px) {
@@ -221,16 +228,22 @@ footer a {
   .card-controls select { min-width: 0; }
 }
 </style>
+<script src="themes.js"></script>
+<script>initTheme('library');</script>
 </head>
 <body>
 
-<h1 id="hub-title">IF Hub</h1>
+<div class="title-row">
+  <h1 id="hub-title">IF Hub</h1>
+  <div id="theme-picker"></div>
+</div>
 <p class="subtitle" id="hub-subtitle">An Interactive Fiction Player &amp; Source Browser</p>
 
 <p>
   IF Hub plays text adventures in the browser. Pick a game, play it online, and
-  read the source code side by side &mdash; all in one interface. No downloads,
-  no plugins.
+  read the source code side by side &mdash; all in one interface. Choose from
+  10 retro platform themes to play in the style of classic home computers.
+  No downloads, no plugins.
 </p>
 
 <h2>Games</h2>
@@ -286,6 +299,8 @@ Promise.all([
     container.innerHTML = '<p style="color:#605840;font-style:italic;">No games match this collection.</p>';
     return;
   }
+
+  createThemeDropdown('theme-picker');
 
   var hubQuery = activeHub.id !== 'all' ? '&hub=' + activeHub.id : '';
 
@@ -396,6 +411,17 @@ Promise.all([
   Zork I v0 has a dedicated ZIL source browser covering all ten original Infocom
   source files with annotations explaining the game engine. Dracula includes both
   the original annotated BASIC listing and the Inform 7 translation side by side.
+</p>
+
+<h2>Platform Themes</h2>
+
+<p>
+  Play in the style of classic home computers. The theme selector offers
+  10 retro platform looks &mdash; MS-DOS, Apple II, Commodore 64, Amiga,
+  Macintosh, Atari ST, CP/M (Kaypro), Atari 800, and TRS-80 &mdash; each
+  styling the full interface from toolbar to game text. Games with
+  atmospheric CSS effects can toggle between their native overlay and any
+  platform theme.
 </p>
 
 <h2>Testing &amp; Toolchain</h2>

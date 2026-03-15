@@ -10,9 +10,9 @@
 
 html, body {
   height: 100%;
-  background: #0a0a0a;
-  color: #d4c5a9;
-  font-family: Georgia, "Times New Roman", serif;
+  background: var(--page-bg, #0a0a0a);
+  color: var(--page-fg, #d4c5a9);
+  font-family: var(--font-family, Georgia, "Times New Roman", serif);
   overflow: hidden;
 }
 
@@ -46,26 +46,26 @@ body.game-collapsed #resize-handle {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-left: 1px solid #2a2418;
-  background: #0a0a0a;
+  border-left: 1px solid var(--border, #2a2418);
+  background: var(--page-bg, #0a0a0a);
 }
 
 .source-toolbar {
   padding: 6px 12px;
-  background: #0e0a08;
-  border-bottom: 1px solid #2a2418;
+  background: var(--toolbar-bg, #0e0a08);
+  border-bottom: 1px solid var(--border, #2a2418);
   display: flex;
   align-items: center;
   gap: 12px;
   font-size: 0.85em;
-  color: #806050;
+  color: var(--muted, #806050);
   flex-shrink: 0;
 }
 
 .source-toolbar .file-path {
   font-family: "SF Mono", "Fira Code", Consolas, "Courier New", monospace;
   font-size: 0.9em;
-  color: #a08060;
+  color: var(--muted, #a08060);
   white-space: nowrap;
 }
 
@@ -78,10 +78,10 @@ body.game-collapsed #resize-handle {
 }
 
 .search-box {
-  background: #110a08;
-  border: 1px solid #2a2418;
+  background: var(--input-bg, #110a08);
+  border: 1px solid var(--border, #2a2418);
   border-radius: 4px;
-  color: #d4c5a9;
+  color: var(--page-fg, #d4c5a9);
   font-family: "SF Mono", "Fira Code", Consolas, "Courier New", monospace;
   font-size: 0.9em;
   padding: 3px 8px;
@@ -90,14 +90,14 @@ body.game-collapsed #resize-handle {
   outline: none;
 }
 
-.search-box:focus { border-color: #5a4a30; }
-.search-box::placeholder { color: #4a3a28; }
+.search-box:focus { border-color: var(--border-hover, #5a4a30); }
+.search-box::placeholder { color: var(--dim, #4a3a28); }
 
 .btn-dismiss {
   background: none;
-  border: 1px solid #3a2a18;
+  border: 1px solid var(--border-hover, #3a2a18);
   border-radius: 4px;
-  color: #806050;
+  color: var(--muted, #806050);
   font-size: 1em;
   cursor: pointer;
   padding: 2px 8px;
@@ -106,8 +106,8 @@ body.game-collapsed #resize-handle {
 }
 
 .btn-dismiss:hover {
-  color: #d4c5a9;
-  border-color: #6a5a40;
+  color: var(--page-fg, #d4c5a9);
+  border-color: var(--muted, #6a5a40);
 }
 
 /* --- Source with nav sidebar --- */
@@ -121,8 +121,8 @@ body.game-collapsed #resize-handle {
 .sidebar {
   width: 220px;
   min-width: 220px;
-  background: #0c0a08;
-  border-right: 1px solid #1a1810;
+  background: var(--toolbar-bg, #0c0a08);
+  border-right: 1px solid var(--card-border, #1a1810);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -135,14 +135,14 @@ body.game-collapsed #resize-handle {
 }
 
 .nav::-webkit-scrollbar { width: 6px; }
-.nav::-webkit-scrollbar-track { background: #0c0a08; }
-.nav::-webkit-scrollbar-thumb { background: #2a2418; border-radius: 3px; }
+.nav::-webkit-scrollbar-track { background: var(--toolbar-bg, #0c0a08); }
+.nav::-webkit-scrollbar-thumb { background: var(--border, #2a2418); border-radius: 3px; }
 
 .nav-item {
   display: block;
   padding: 4px 12px;
   font-size: 0.82em;
-  color: #886850;
+  color: var(--muted, #886850);
   text-decoration: none;
   cursor: pointer;
   border-left: 2px solid transparent;
@@ -150,25 +150,25 @@ body.game-collapsed #resize-handle {
 }
 
 .nav-item:hover {
-  background: #151008;
-  color: #c0a880;
+  background: var(--surface-bg, #151008);
+  color: var(--heading-fg, #c0a880);
 }
 
 .nav-item.active {
-  background: #18100a;
-  color: #e0c8a0;
-  border-left-color: #e8d090;
+  background: var(--surface-bg, #18100a);
+  color: var(--heading-fg, #e0c8a0);
+  border-left-color: var(--accent, #e8d090);
 }
 
 .nav-part {
   font-weight: bold;
-  color: #c0a880;
+  color: var(--heading-fg, #c0a880);
   padding-top: 10px;
   font-size: 0.85em;
 }
 
 .nav-chapter { padding-left: 20px; }
-.nav-section { padding-left: 32px; font-size: 0.78em; color: #705840; }
+.nav-section { padding-left: 32px; font-size: 0.78em; color: var(--dim, #705840); }
 
 /* --- Source main (code area) --- */
 .source-main {
@@ -179,9 +179,9 @@ body.game-collapsed #resize-handle {
 }
 
 .source-main::-webkit-scrollbar { width: 8px; }
-.source-main::-webkit-scrollbar-track { background: #0a0a0a; }
-.source-main::-webkit-scrollbar-thumb { background: #2a2418; border-radius: 4px; }
-.source-main::-webkit-scrollbar-thumb:hover { background: #3a3020; }
+.source-main::-webkit-scrollbar-track { background: var(--scroll-track, #0a0a0a); }
+.source-main::-webkit-scrollbar-thumb { background: var(--scroll-thumb, #2a2418); border-radius: 4px; }
+.source-main::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover, #3a3020); }
 
 /* --- Code table --- */
 table.code {
@@ -198,7 +198,7 @@ td.ln {
   min-width: 40px;
   padding: 0 12px 0 16px;
   text-align: right;
-  color: #302818;
+  color: var(--badge-fg, #302818);
   user-select: none;
   white-space: nowrap;
 }
@@ -210,11 +210,11 @@ td.lc {
 }
 
 tr.heading-line td { padding-top: 8px; }
-tr.heading-line td.lc { font-weight: bold; color: #e0c8a0; font-size: 14px; }
-tr.heading-line td.ln { color: #5a4030; }
+tr.heading-line td.lc { font-weight: bold; color: var(--heading-fg, #e0c8a0); font-size: 14px; }
+tr.heading-line td.ln { color: var(--dim, #5a4030); }
 
-tr:target td, tr.highlight td { background: #1a1008; }
-tr:target td.ln, tr.highlight td.ln { color: #806050; }
+tr:target td, tr.highlight td { background: var(--surface-bg, #1a1008); }
+tr:target td.ln, tr.highlight td.ln { color: var(--muted, #806050); }
 
 /* --- Inform 7 syntax colors --- */
 .syn-str  { color: #8bab6e; }
@@ -248,7 +248,7 @@ tr:target td.ln, tr.highlight td.ln { color: #806050; }
   background: none;
   border: 1px solid transparent;
   border-radius: 4px;
-  color: #605040;
+  color: var(--muted, #605040);
   font-family: inherit;
   font-size: 0.85em;
   cursor: pointer;
@@ -257,13 +257,13 @@ tr:target td.ln, tr.highlight td.ln { color: #806050; }
 }
 
 .view-tab:hover {
-  color: #c0a880;
+  color: var(--heading-fg, #c0a880);
 }
 
 .view-tab.active {
-  color: #e8d090;
-  border-color: #2a2418;
-  background: #0e0a08;
+  color: var(--accent, #e8d090);
+  border-color: var(--border, #2a2418);
+  background: var(--toolbar-bg, #0e0a08);
 }
 
 /* --- Source toolbar context (search, line count) --- */
@@ -289,12 +289,12 @@ tr:target td.ln, tr.highlight td.ln { color: #806050; }
   flex: 1;
   width: 100%;
   border: none;
-  background: #0a0a0a;
+  background: var(--page-bg, #0a0a0a);
 }
 
 #walkthrough-unavailable {
   padding: 20px;
-  color: #605840;
+  color: var(--muted, #605840);
   font-style: italic;
 }
 
@@ -302,14 +302,14 @@ tr:target td.ln, tr.highlight td.ln { color: #806050; }
 #resize-handle {
   width: 5px;
   cursor: col-resize;
-  background: #1a1810;
+  background: var(--card-border, #1a1810);
   transition: background 0.15s;
   flex-shrink: 0;
 }
 
 #resize-handle:hover,
 #resize-handle.dragging {
-  background: #3a3020;
+  background: var(--border, #3a3020);
 }
 
 body.source-collapsed #resize-handle {
@@ -323,28 +323,29 @@ body.resizing iframe {
 /* --- Game Pane --- */
 #game-pane {
   overflow: hidden;
-  background: #0a0a0a;
+  background: var(--page-bg, #0a0a0a);
 }
 
 .game-toolbar {
   grid-column: 1 / -1;
   padding: 6px 12px;
-  background: #0e0a08;
-  border-bottom: 1px solid #2a2418;
+  background: var(--toolbar-bg, #0e0a08);
+  border-bottom: 1px solid var(--border, #2a2418);
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 0.85em;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .game-toolbar .spacer { flex: 1; }
 
 /* --- Game Selector --- */
 #game-select {
-  background: #110a08;
-  border: 1px solid #2a2418;
+  background: var(--input-bg, #110a08);
+  border: 1px solid var(--border, #2a2418);
   border-radius: 4px;
-  color: #e8d090;
+  color: var(--accent, #e8d090);
   font-family: inherit;
   font-size: 0.9em;
   padding: 3px 8px;
@@ -352,18 +353,18 @@ body.resizing iframe {
   outline: none;
 }
 
-#game-select:focus { border-color: #5a4a30; }
+#game-select:focus { border-color: var(--border-hover, #5a4a30); }
 
 #game-select option {
-  background: #110a08;
-  color: #d4c5a9;
+  background: var(--input-bg, #110a08);
+  color: var(--page-fg, #d4c5a9);
 }
 
 #game-frame {
   width: 100%;
   height: 100%;
   border: none;
-  background: #111;
+  background: var(--card-bg, #111);
 }
 
 /* --- Sound Controls --- */
@@ -375,7 +376,7 @@ body.resizing iframe {
 
 #mute-btn {
   background: none;
-  border: 1px solid #3a2a18;
+  border: 1px solid var(--border-hover, #3a2a18);
   border-radius: 4px;
   cursor: pointer;
   padding: 3px 6px;
@@ -385,8 +386,8 @@ body.resizing iframe {
   transition: border-color 0.15s;
 }
 
-#mute-btn:hover { border-color: #6a5a40; }
-#mute-btn svg { width: 16px; height: 16px; fill: #aa9966; }
+#mute-btn:hover { border-color: var(--muted, #6a5a40); }
+#mute-btn svg { width: 16px; height: 16px; fill: var(--muted, #aa9966); }
 #mute-btn.muted svg .sound-wave { display: none; }
 #mute-btn.muted svg .mute-x { display: inline; }
 #mute-btn:not(.muted) svg .mute-x { display: none; }
@@ -394,33 +395,34 @@ body.resizing iframe {
 #volume-slider {
   width: 80px;
   height: 4px;
-  accent-color: #aa9966;
+  accent-color: var(--muted, #aa9966);
   cursor: pointer;
 }
 
 /* --- Hub indicator --- */
 .hub-indicator {
   font-size: 0.85em;
-  color: #aa9966;
-  border: 1px solid #2a2418;
-  border-bottom: 1px solid #2a2418;
+  color: var(--link-fg, #aa9966);
+  text-decoration: none;
+  border: 1px solid var(--border, #2a2418);
+  border-bottom: 1px solid var(--border, #2a2418);
   border-radius: 12px;
   padding: 2px 10px;
   white-space: nowrap;
 }
 
 .hub-indicator:hover {
-  color: #e8d090;
-  border-color: #5a4a30;
-  border-bottom-color: #5a4a30;
+  color: var(--accent, #e8d090);
+  border-color: var(--border-hover, #5a4a30);
+  border-bottom-color: var(--border-hover, #5a4a30);
 }
 
 /* --- Full Page button --- */
 .btn-fullpage {
   background: none;
-  border: 1px solid #3a2a18;
+  border: 1px solid var(--border-hover, #3a2a18);
   border-radius: 4px;
-  color: #806050;
+  color: var(--muted, #806050);
   font-family: inherit;
   font-size: 0.85em;
   cursor: pointer;
@@ -429,8 +431,8 @@ body.resizing iframe {
 }
 
 .btn-fullpage:hover {
-  color: #e8d090;
-  border-color: #6a5a40;
+  color: var(--accent, #e8d090);
+  border-color: var(--muted, #6a5a40);
 }
 
 /* --- Responsive --- */
@@ -452,14 +454,18 @@ body.resizing iframe {
   .sidebar { display: none; }
 }
 </style>
+<script src="themes.js"></script>
+<script>initTheme('app');</script>
 </head>
 <body>
 
 <!-- ===== TOP TOOLBAR ===== -->
 <div class="game-toolbar">
-  <span style="color:#806050;">Load Game:</span>
+  <span style="color:var(--muted, #806050);">Load Game:</span>
   <select id="game-select"></select>
+  <a id="library-link" class="hub-indicator" href=".">Library</a>
   <a id="hub-indicator" class="hub-indicator" href="." style="display:none;"></a>
+  <div id="theme-picker"></div>
   <span class="spacer"></span>
   <span id="sound-controls" style="display:none;">
     <button id="mute-btn" title="Toggle sound">
@@ -569,14 +575,17 @@ document.addEventListener('DOMContentLoaded', function() {
     bindUI();
     initSoundControls();
 
-    // Show hub indicator if filtering
+    // Show hub indicator if filtering; update Library link
     if (activeHub && activeHub.id !== 'all') {
       var indicator = document.getElementById('hub-indicator');
       indicator.textContent = activeHub.title;
       indicator.href = 'index.html?hub=' + activeHub.id;
       indicator.title = 'Back to ' + activeHub.title;
       indicator.style.display = '';
+      document.getElementById('library-link').href = 'index.html?hub=' + activeHub.id;
     }
+
+    buildStyleDropdown(null);
 
     var initGame = params.get('game') || games[0].id;
     if (!gameMap[initGame]) initGame = games[0].id;
@@ -688,7 +697,15 @@ function bindUI() {
   // Full Page button — navigate to game's own play page
   document.getElementById('btn-fullpage').addEventListener('click', function() {
     var g = gameMap[currentGame];
-    if (g && g.playUrl) window.location.href = g.playUrl;
+    if (g && g.playUrl) {
+      var sel = document.getElementById('style-select');
+      var themeId = (sel && sel.value !== 'overlay') ? sel.value : '';
+      var url = g.playUrl;
+      if (themeId && themeId !== 'classic') {
+        url += (url.indexOf('?') === -1 ? '?' : '&') + 'theme=' + themeId;
+      }
+      window.location.href = url;
+    }
   });
 }
 
@@ -907,6 +924,7 @@ function loadSourceForGame(gameId) {
     sourceNav.style.display = 'none';
     browserFrame.src = g.sourceUrl;
     browserFrame.style.display = '';
+    browserFrame.onload = function() { themeIframe(browserFrame); };
     document.getElementById('line-count').textContent = '';
     return;
   }
@@ -981,6 +999,7 @@ function loadWalkthroughForGame(gameId) {
     frame.style.display = '';
     msg.style.display = 'none';
     status.textContent = '';
+    frame.onload = function() { themeIframe(frame); };
   } else {
     frame.src = 'about:blank';
     frame.style.display = 'none';
@@ -1041,6 +1060,179 @@ function sendSoundMessage(type, data) {
 }
 
 /* ==================================================================
+   STYLE DROPDOWN (overlay-aware theme selector)
+   ================================================================== */
+function getStylePref(gameId) {
+  try { return localStorage.getItem('ifhub-style-' + gameId); }
+  catch (e) { return null; }
+}
+
+function setStylePref(gameId, val) {
+  try { localStorage.setItem('ifhub-style-' + gameId, val); }
+  catch (e) { /* localStorage unavailable */ }
+}
+
+function buildStyleDropdown(gameId) {
+  var container = document.getElementById('theme-picker');
+  if (!container) return;
+  container.innerHTML = '';
+
+  var label = document.createElement('label');
+  label.textContent = 'Style: ';
+  label.htmlFor = 'style-select';
+  label.style.cssText = 'color:var(--muted);font-size:0.85em;white-space:nowrap;cursor:pointer;';
+
+  var select = document.createElement('select');
+  select.id = 'style-select';
+  select.style.cssText = 'background:var(--input-bg);border:1px solid var(--border);color:var(--accent);border-radius:4px;padding:3px 8px;font-family:inherit;font-size:0.85em;cursor:pointer;';
+
+  var g = gameId ? gameMap[gameId] : null;
+  var hasOverlay = g && g.overlayLabel;
+
+  // If game has an overlay, add it as first option
+  if (hasOverlay) {
+    var overlayOpt = document.createElement('option');
+    overlayOpt.value = 'overlay';
+    overlayOpt.textContent = g.overlayLabel;
+    select.appendChild(overlayOpt);
+
+    // Separator
+    var sep = document.createElement('option');
+    sep.disabled = true;
+    sep.textContent = '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500';
+    select.appendChild(sep);
+  }
+
+  // Platform themes
+  for (var i = 0; i < THEMES.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = THEMES[i].id;
+    opt.textContent = THEMES[i].name;
+    select.appendChild(opt);
+  }
+
+  // Determine current selection
+  var stored = gameId ? getStylePref(gameId) : null;
+  if (stored) {
+    select.value = stored;
+  } else if (hasOverlay) {
+    select.value = 'overlay';
+  } else {
+    select.value = getThemeId();
+  }
+
+  select.addEventListener('change', function() {
+    var val = this.value;
+    if (gameId) setStylePref(gameId, val);
+
+    if (val === 'overlay' || val === 'classic') {
+      // Classic = game's native look; overlay = game's native overlay
+      var classic = getTheme('classic');
+      applyChrome(classic);
+      sendGameMessage({ type: 'ifhub:restoreOverlay' });
+    } else {
+      // Apply platform theme to chrome and game
+      var theme = getTheme(val);
+      setThemeId(val);
+      applyChrome(theme);
+      sendGameMessage({
+        type: 'ifhub:applyTheme',
+        game: theme.game,
+        scrollbar: theme.scrollbar
+      });
+    }
+    themeAllIframes();
+  });
+
+  container.appendChild(label);
+  container.appendChild(select);
+
+  // Apply current selection
+  if (gameId) applyCurrentStyle(gameId, select.value);
+}
+
+function applyCurrentStyle(gameId, val) {
+  if (val === 'overlay' || val === 'classic') {
+    // Classic = game's native look (no override); overlay = game's native overlay
+    var classic = getTheme('classic');
+    applyChrome(classic);
+    setTimeout(function() { sendGameMessage({ type: 'ifhub:restoreOverlay' }); }, 500);
+  } else {
+    var theme = getTheme(val);
+    applyChrome(theme);
+    setTimeout(function() {
+      sendGameMessage({
+        type: 'ifhub:applyTheme',
+        game: theme.game,
+        scrollbar: theme.scrollbar
+      });
+    }, 500);
+  }
+  themeAllIframes();
+}
+
+function sendGameMessage(msg) {
+  var iframe = document.getElementById('game-frame');
+  if (iframe && iframe.contentWindow) {
+    iframe.contentWindow.postMessage(msg, '*');
+  }
+}
+
+/* ==================================================================
+   THEME IFRAMES (source browser, walkthrough)
+   ================================================================== */
+function themeIframe(iframe) {
+  if (!iframe || !iframe.src || iframe.src === 'about:blank') return;
+  try {
+    var doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+    if (!doc || !doc.head) return;
+
+    var existing = doc.getElementById('ifhub-theme-override');
+    if (existing) existing.remove();
+
+    var themeId = getThemeId();
+    var theme = getTheme(themeId);
+    if (themeId === 'classic') return;
+
+    var c = theme.chrome;
+    var sb = theme.scrollbar;
+    var style = doc.createElement('style');
+    style.id = 'ifhub-theme-override';
+    style.textContent =
+      'html, body { background: ' + c.pageBg + ' !important; color: ' + c.pageFg + ' !important; }\n' +
+      'h1, h2, h3, h4, strong { color: ' + c.headingFg + ' !important; }\n' +
+      'a { color: ' + c.accentFg + ' !important; }\n' +
+      'a:hover { color: ' + c.btnHoverBg + ' !important; }\n' +
+      'input, select, textarea { background: ' + c.inputBg + ' !important; color: ' + c.inputFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
+      'button { background: ' + c.btnBg + ' !important; color: ' + c.btnFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
+      'button:hover { background: ' + c.btnHoverBg + ' !important; }\n' +
+      'button.active, .tab-btn.active, .mode-btn.active { background: ' + c.activeTabBg + ' !important; color: ' + c.activeTabFg + ' !important; }\n' +
+      'pre, code { background: ' + c.codeBg + ' !important; color: ' + c.codeFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
+      'table, th, td, tr { border-color: ' + c.border + ' !important; }\n' +
+      'th { color: ' + c.headingFg + ' !important; }\n' +
+      'td { color: ' + c.pageFg + ' !important; }\n' +
+      '.toolbar, .source-toolbar, .wt-toolbar, header, nav { background: ' + c.toolbarBg + ' !important; border-color: ' + c.border + ' !important; color: ' + c.mutedFg + ' !important; }\n' +
+      '.sidebar, .nav, .wt-sidebar { background: ' + c.toolbarBg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
+      '.nav-item, .wt-nav-item, .sidebar a { color: ' + c.mutedFg + ' !important; }\n' +
+      '.nav-item.active, .wt-nav-item.active, .sidebar a.active { color: ' + c.headingFg + ' !important; border-left-color: ' + c.accentFg + ' !important; background: ' + c.surfaceBg + ' !important; }\n' +
+      'footer { color: ' + c.footerFg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
+      '* { scrollbar-color: ' + sb.thumb + ' ' + sb.track + ' !important; }\n' +
+      '::-webkit-scrollbar { background: ' + sb.track + ' !important; }\n' +
+      '::-webkit-scrollbar-thumb { background: ' + sb.thumb + ' !important; }\n' +
+      '::-webkit-scrollbar-thumb:hover { background: ' + sb.thumbHover + ' !important; }\n';
+    doc.head.appendChild(style);
+  } catch(e) { /* cross-origin — can't inject */ }
+}
+
+function themeAllIframes() {
+  var frames = ['source-browser-frame', 'walkthrough-frame'];
+  frames.forEach(function(id) {
+    var iframe = document.getElementById(id);
+    if (iframe) themeIframe(iframe);
+  });
+}
+
+/* ==================================================================
    SWITCH GAME
    ================================================================== */
 function switchGame(gameId) {
@@ -1063,6 +1255,22 @@ function switchGame(gameId) {
 
   // Update page title
   document.title = g.title + ' \u2014 Source & Game';
+
+  // Rebuild style dropdown for this game
+  buildStyleDropdown(gameId);
+
+  // Re-apply style after iframe loads
+  iframe.onload = function() {
+    var sel = document.getElementById('style-select');
+    if (sel && sel.value !== 'overlay' && sel.value !== 'classic') {
+      var theme = getTheme(sel.value);
+      sendGameMessage({
+        type: 'ifhub:applyTheme',
+        game: theme.game,
+        scrollbar: theme.scrollbar
+      });
+    }
+  };
 
   // Load source and walkthrough
   loadSourceForGame(gameId);

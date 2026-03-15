@@ -69,7 +69,8 @@ ifhub/
 └── ifhub/                 ← IF Hub web player (see ifhub/README.md)
     ├── index.html         ← Landing page
     ├── app.html           ← Split-pane player (game + source viewer)
-    ├── games.json         ← Game registry (URLs, sound flags)
+    ├── themes.js          ← Platform theme system (10 retro themes)
+    ├── games.json         ← Game registry (URLs, sound flags, overlayLabel)
     └── cards.json         ← Card metadata for landing page
 ```
 

@@ -33,6 +33,7 @@ def main():
     parser.add_argument("--out", required=True, help="Output directory")
     parser.add_argument("--template", help="Custom play.html template")
     parser.add_argument("--walkthrough", action="store_true", help="Generate walkthrough.html")
+    parser.add_argument("--mood", action="store_true", help="Copy mood-engine.js for mood theming")
     parser.add_argument("--force", action="store_true", help="Overwrite play.html")
     args = parser.parse_args()
 
@@ -67,17 +68,33 @@ def main():
     print("Copying Parchment libraries...")
     web.copy_parchment_libs(parchment_dir)
 
+    # Copy mood engine if requested
+    if args.mood:
+        print("Copying mood-engine.js...")
+        web.copy_mood_engine(parchment_dir)
+
     # Base64-encode game binary
     print(f"Encoding {game_basename} -> {story_js}...")
     web.write_story_js(game_path, parchment_dir / story_js)
 
     # Generate play.html from template
-    template_path = Path(args.template) if args.template else script_dir / "play-template.html"
+    if args.template:
+        template_path = Path(args.template)
+    elif args.mood:
+        template_path = script_dir / "templates" / "play-mood.html"
+    else:
+        template_path = script_dir / "play-template.html"
     play_html = out_dir / "play.html"
 
     if play_html.exists() and not args.force:
         print("  play.html already exists (use --force to overwrite)")
     else:
+        # Warn if play.html has a custom overlay but no template was provided
+        if play_html.exists() and args.force and not args.template:
+            existing = play_html.read_text(encoding="utf-8")
+            if any(m in existing for m in ["@property", "MutationObserver", "--mood-"]):
+                output.warn("play.html contains a custom overlay but no --template was provided!")
+                output.warn("  Create play-template.html to protect the overlay from --force rebuilds.")
         print("Generating play.html...")
         web.substitute_template(
             template_path, play_html,

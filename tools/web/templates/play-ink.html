@@ -124,5 +124,72 @@ function continueStory() {
 
 continueStory();
 </script>
+
+<script>
+/* ── IF Hub theme listener (ink games) ── */
+(function() {
+  function ensureRetroFonts() {
+    if (document.getElementById('retro-platform-fonts')) return;
+    var link = document.createElement('link');
+    link.id = 'retro-platform-fonts';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Pixelify+Sans&family=Press+Start+2P&family=Silkscreen&family=Sixtyfour&family=Tiny5&family=VT323&family=Workbench&display=swap';
+    document.head.appendChild(link);
+  }
+
+  function applyPlatformTheme(g, sb) {
+    ensureRetroFonts();
+    var el = document.getElementById('platform-theme-override');
+    if (el) el.remove();
+    var style = document.createElement('style');
+    style.id = 'platform-theme-override';
+    style.textContent =
+      'body { background: ' + g.bodyBg + ' !important; color: ' + g.bufferFg + ' !important; font-family: ' + g.propFamily + ' !important; }\n' +
+      'h1 { color: ' + g.headerFg + ' !important; border-bottom-color: ' + g.gridBg + ' !important; }\n' +
+      '#story p { color: ' + g.bufferFg + ' !important; }\n' +
+      '.choice-echo { color: ' + g.gridFg + ' !important; }\n' +
+      '#choices { border-top-color: ' + g.gridBg + ' !important; }\n' +
+      '.choice { color: ' + g.inputFg + ' !important; font-family: ' + g.propFamily + ' !important; }\n' +
+      '.choice:hover { color: ' + g.headerFg + ' !important; }\n' +
+      '#end { color: ' + g.emphFg + ' !important; }\n' +
+      '* { scrollbar-color: ' + sb.thumb + ' ' + sb.track + '; }\n' +
+      '::-webkit-scrollbar { width: 10px; background: ' + sb.track + '; }\n' +
+      '::-webkit-scrollbar-thumb { background: ' + sb.thumb + '; border-radius: 4px; }\n' +
+      '::-webkit-scrollbar-thumb:hover { background: ' + sb.thumbHover + '; }\n';
+    document.head.appendChild(style);
+  }
+
+  function removePlatformTheme() {
+    var el = document.getElementById('platform-theme-override');
+    if (el) el.remove();
+  }
+
+  window.addEventListener('message', function(e) {
+    if (!e.data) return;
+    if (e.data.type === 'ifhub:applyTheme') {
+      applyPlatformTheme(e.data.game, e.data.scrollbar);
+    }
+    if (e.data.type === 'ifhub:restoreOverlay') {
+      removePlatformTheme();
+    }
+  });
+
+  // Auto-apply theme from URL param (full-page mode from hub)
+  var urlTheme = new URLSearchParams(window.location.search).get('theme');
+  if (urlTheme && urlTheme !== 'classic') {
+    var s = document.createElement('script');
+    s.src = '/ifhub/themes.js';
+    s.onload = function() {
+      var t = getTheme(urlTheme);
+      if (t) {
+        document.body.classList.add('platform-theme-active');
+        applyPlatformTheme(t.game, t.scrollbar);
+      }
+    };
+    document.head.appendChild(s);
+  }
+})();
+</script>
+
 </body>
 </html>
