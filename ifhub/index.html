@@ -223,9 +223,15 @@ footer a {
 }
 
 @media (max-width: 600px) {
+  body { padding: 30px 14px 60px; }
+  h1 { font-size: 1.4em; }
   .tech-grid { grid-template-columns: 1fr; }
   .card-controls { flex-wrap: wrap; }
-  .card-controls select { min-width: 0; }
+  .card-controls select { min-width: 0; flex-basis: 100%; }
+  .card-controls button { width: 100%; }
+  .game-card { padding: 16px; }
+  .hub-bar { gap: 6px; }
+  .hub-bar a { font-size: 0.8em; padding: 4px 10px; }
 }
 </style>
 <script src="themes.js"></script>

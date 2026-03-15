@@ -66,11 +66,15 @@ body.game-collapsed #resize-handle {
   font-family: "SF Mono", "Fira Code", Consolas, "Courier New", monospace;
   font-size: 0.9em;
   color: var(--muted, #a08060);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .source-toolbar .line-count {
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .source-toolbar .spacer {
@@ -332,13 +336,14 @@ body.resizing iframe {
   background: var(--toolbar-bg, #0e0a08);
   border-bottom: 1px solid var(--border, #2a2418);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 6px 12px;
   font-size: 13px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.game-toolbar .spacer { flex: 1; }
+.game-toolbar .spacer { flex: 1; min-width: 0; }
 
 /* --- Game Selector --- */
 #game-select {
@@ -452,6 +457,49 @@ body.resizing iframe {
 
   #resize-handle { display: none; }
   .sidebar { display: none; }
+
+  .game-toolbar {
+    gap: 4px 8px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .game-toolbar .spacer { display: none; }
+
+  #game-select {
+    min-width: 0;
+    max-width: 45vw;
+  }
+
+  #volume-slider { width: 50px; }
+
+  .source-toolbar {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 6px 8px;
+  }
+
+  .source-toolbar .file-path { max-width: 50vw; }
+
+  .search-box { width: 100px; min-width: 60px; }
+}
+
+@media (max-width: 480px) {
+  .game-toolbar {
+    font-size: 11px;
+    gap: 4px 6px;
+  }
+
+  #game-select { max-width: 55vw; font-size: 0.85em; }
+
+  .btn-fullpage { display: none; }
+
+  .hub-indicator { font-size: 0.8em; padding: 2px 8px; }
+
+  .view-tab { font-size: 0.85em; padding: 4px 8px; }
+
+  .source-toolbar .file-path { max-width: 40vw; font-size: 0.8em; }
+  .source-toolbar .line-count { display: none; }
 }
 </style>
 <script src="themes.js"></script>
