@@ -1,17 +1,17 @@
 <!-- Template tokens (substituted by setup_web.py and compile.py):
-     Seasons      — Game title (from story.ni or games.json)
-     seasons.ulx.js — Binary filename, e.g. "game.ulx.js?v=1773525444" or "game.gblorb.js?v=1773525444"
-     lib/parchment/seasons.ulx.js — Full path to binary, e.g. "lib/parchment/game.ulx.js?v=1773525444"
-     lib/parchment/   — Parchment library path, e.g. "lib/parchment/" or "../../lib/parchment/"
+     __TITLE__      — Game title (from story.ni or games.json)
+     __STORY_FILE__ — Binary filename, e.g. "game.ulx.js" or "game.gblorb.js"
+     __STORY_PATH__ — Full path to binary, e.g. "lib/parchment/game.ulx.js"
+     __LIB_PATH__   — Parchment library path, e.g. "lib/parchment/" or "../../lib/parchment/"
 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Seasons</title>
+<title>__TITLE__</title>
 <meta name="viewport" content="width=device-width, user-scalable=no">
-<link rel="stylesheet" href="lib/parchment/parchment.css?v=1773525444">
-<link rel="stylesheet" href="lib/parchment/main.css?v=1773525444">
+<link rel="stylesheet" href="__LIB_PATH__parchment.css">
+<link rel="stylesheet" href="__LIB_PATH__main.css">
 
 <style>
 /* ── Houdini @property — register as <color> for smooth transitions ── */
@@ -283,32 +283,22 @@ body.season-summer .Input {
   from { transform: rotate(0deg) rotateY(0deg); }
   to   { transform: rotate(var(--lf-spin, 720deg)) rotateY(var(--lf-flip, 540deg)); }
 }
-
-/* ── Platform theme override: suppress overlay effects ── */
-body.platform-theme-active .season-vignette,
-body.platform-theme-active #season-fx { display: none !important; }
-
-body.platform-theme-active .BufferLine { animation: none !important; }
-
-/* Suppress mood palette — let platform-theme-override style take full control */
-body.platform-theme-active div#gameport { transition: none !important; }
-body.platform-theme-active .BufferWindow { transition: none !important; }
-body.platform-theme-active .Input { color: inherit !important; caret-color: inherit !important; transition: none !important; }
 </style>
 
-<script src="lib/parchment/jquery.min.js?v=1773525444"></script>
-<script src="lib/parchment/ie.js?v=1773525444" nomodule></script>
+<script src="__LIB_PATH__jquery.min.js"></script>
+<script src="__LIB_PATH__ie.js" nomodule></script>
 <script>
     parchment_options = {
-        default_story: ['lib/parchment/seasons.ulx.js'],
-        lib_path: 'lib/parchment/',
-        story_name: 'seasons.ulx.js',
+        default_story: ['__STORY_PATH__'],
+        lib_path: '__LIB_PATH__',
+        story_name: '__STORY_FILE__',
         use_proxy: 0,
         do_vm_autosave: 1,
     };
 </script>
-<script src="lib/parchment/parchment.js?v=1773525444"></script>
-<script src="lib/parchment/resourcemap.js?v=1773525444"></script>
+<script src="__LIB_PATH__parchment.js"></script>
+<script src="__LIB_PATH__resourcemap.js"></script>
+<script src="__LIB_PATH__mood-engine.js"></script>
 <script>
     window.addEventListener('pageshow', function(e) {
         if (e.persisted) { window.location.reload(); }
@@ -322,14 +312,14 @@ body.platform-theme-active .Input { color: inherit !important; caret-color: inhe
   <div id="windowport">
     <noscript>
       <div style="text-align:center; padding:40px; color:#708090;">
-        <h2>Seasons</h2>
+        <h2>__TITLE__</h2>
         <p>JavaScript is required to play this game.</p>
       </div>
     </noscript>
   </div>
   <div id="loadingpane">
     <div style="margin-bottom:20px; font-size:1.4em; color:#6080a0; letter-spacing:6px;">SEASONS</div>
-    <img src="lib/parchment/waiting.gif" alt="Loading" style="opacity:0.4"><br>
+    <img src="__LIB_PATH__waiting.gif" alt="Loading" style="opacity:0.4"><br>
     <em>Loading...</em>
   </div>
   <div id="errorpane" style="display:none;">
@@ -346,68 +336,7 @@ body.platform-theme-active .Input { color: inherit !important; caret-color: inhe
   'use strict';
 
   // ══════════════════════════════════════════════════════════════
-  //  MOOD PALETTE SYSTEM
-  // ══════════════════════════════════════════════════════════════
-
-  var PALETTES = {
-    winter: { bufferBg:'#080c18', bufferFg:'#c0d0e8', gridBg:'#0c1224', gridFg:'#6888b0', accent:'#88c0e8', uiBg:'#080c18', border:'#101c30' },
-    spring: { bufferBg:'#081208', bufferFg:'#a8d0a0', gridBg:'#0c1a0c', gridFg:'#58a060', accent:'#70c870', uiBg:'#081208', border:'#142c14' },
-    summer: { bufferBg:'#141008', bufferFg:'#e0d098', gridBg:'#1c1808', gridFg:'#a89040', accent:'#e8c040', uiBg:'#141008', border:'#282008' },
-    fall:   { bufferBg:'#160c08', bufferFg:'#d8b890', gridBg:'#201208', gridFg:'#a07038', accent:'#d88030', uiBg:'#160c08', border:'#281810' }
-  };
-
-  var ROOM_ZONES = {
-    'Winter': 'winter',
-    'Spring': 'spring',
-    'Summer': 'summer',
-    'Fall':   'fall'
-  };
-
-  var currentRoom = null;
-  var currentZone = null;
-
-  function applyPalette(zone) {
-    var p = PALETTES[zone] || PALETTES.winter;
-    var root = document.documentElement.style;
-    root.setProperty('--mood-buffer-bg', p.bufferBg);
-    root.setProperty('--mood-buffer-fg', p.bufferFg);
-    root.setProperty('--mood-grid-bg', p.gridBg);
-    root.setProperty('--mood-grid-fg', p.gridFg);
-    root.setProperty('--mood-accent', p.accent);
-    root.setProperty('--mood-ui-bg', p.uiBg);
-    root.setProperty('--mood-border', p.border);
-    root.setProperty('--glkote-buffer-bg', p.bufferBg);
-    root.setProperty('--glkote-buffer-fg', p.bufferFg);
-    root.setProperty('--glkote-grid-bg', p.gridBg);
-    root.setProperty('--glkote-grid-fg', p.gridFg);
-    root.setProperty('--glkote-input-fg', p.accent);
-    root.setProperty('--asyncglk-ui-bg', p.uiBg);
-    root.setProperty('--asyncglk-ui-border', p.border);
-    var gp = document.getElementById('gameport');
-    if (gp) gp.style.backgroundColor = p.uiBg;
-  }
-
-  function extractRoomName(gridWindow) {
-    var firstLine = gridWindow.querySelector('.GridLine');
-    if (!firstLine) return null;
-    var text = (firstLine.textContent || '').trim();
-    text = text.replace(/\s{2,}.*$/, '').trim();
-    return text || null;
-  }
-
-  function onRoomChange(roomName) {
-    if (roomName === currentRoom) return;
-    currentRoom = roomName;
-    var zone = ROOM_ZONES[roomName];
-    if (!zone) return;
-    currentZone = zone;
-    console.log('[seasons] ' + roomName + ' \u2192 ' + zone);
-    applyPalette(zone);
-    seasonFx.switchTo(zone);
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  SEASONAL PARTICLE EFFECTS
+  //  SEASONAL PARTICLE EFFECTS (game-specific)
   // ══════════════════════════════════════════════════════════════
 
   var seasonFx = {
@@ -717,117 +646,35 @@ body.platform-theme-active .Input { color: inherit !important; caret-color: inhe
   };
 
   // ══════════════════════════════════════════════════════════════
-  //  GRID OBSERVER — room detection from status bar
+  //  INIT — wire MoodEngine + particle system
   // ══════════════════════════════════════════════════════════════
 
-  function attachGridObserver(grid) {
-    var observer = new MutationObserver(function() {
-      var firstLine = grid.querySelector('.GridLine');
-      if (!firstLine) return;
-      var text = (firstLine.textContent || '').trim().replace(/\s{2,}.*$/, '').trim();
-      if (text) onRoomChange(text);
-    });
-    observer.observe(grid, { childList: true, characterData: true, subtree: true });
-    var firstLine = grid.querySelector('.GridLine');
-    if (firstLine) {
-      var text = (firstLine.textContent || '').trim().replace(/\s{2,}.*$/, '').trim();
-      if (text) onRoomChange(text);
-    }
-  }
-
-  function init() {
+  function start() {
     seasonFx.init();
-    var grid = document.querySelector('.GridWindow');
-    if (grid) { attachGridObserver(grid); return; }
-    var poll = setInterval(function() {
-      grid = document.querySelector('.GridWindow');
-      if (grid) { clearInterval(poll); attachGridObserver(grid); }
-    }, 500);
+
+    MoodEngine.init({
+      palettes: {
+        winter: { bufferBg:'#080c18', bufferFg:'#c0d0e8', gridBg:'#0c1224', gridFg:'#6888b0', accent:'#88c0e8', uiBg:'#080c18', border:'#101c30' },
+        spring: { bufferBg:'#081208', bufferFg:'#a8d0a0', gridBg:'#0c1a0c', gridFg:'#58a060', accent:'#70c870', uiBg:'#081208', border:'#142c14' },
+        summer: { bufferBg:'#141008', bufferFg:'#e0d098', gridBg:'#1c1808', gridFg:'#a89040', accent:'#e8c040', uiBg:'#141008', border:'#282008' },
+        fall:   { bufferBg:'#160c08', bufferFg:'#d8b890', gridBg:'#201208', gridFg:'#a07038', accent:'#d88030', uiBg:'#160c08', border:'#281810' }
+      },
+      roomZones: {
+        'Winter': 'winter',
+        'Spring': 'spring',
+        'Summer': 'summer',
+        'Fall':   'fall'
+      },
+      onRoomChange: function(roomName, zone) {
+        seasonFx.switchTo(zone);
+      }
+    });
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', start);
   } else {
-    init();
-  }
-})();
-</script>
-
-<script>
-/* ── IF Hub theme listener ── */
-(function() {
-  function ensureRetroFonts() {
-    if (document.getElementById('retro-platform-fonts')) return;
-    var link = document.createElement('link');
-    link.id = 'retro-platform-fonts';
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Pixelify+Sans&family=Press+Start+2P&family=Silkscreen&family=Sixtyfour&family=Tiny5&family=VT323&family=Workbench&display=swap';
-    document.head.appendChild(link);
-  }
-
-  function applyPlatformTheme(g, sb) {
-    ensureRetroFonts();
-    var el = document.getElementById('platform-theme-override');
-    if (el) el.remove();
-    var style = document.createElement('style');
-    style.id = 'platform-theme-override';
-    style.textContent =
-      'body, html { background: ' + g.bodyBg + ' !important; }\n' +
-      '.BufferWindow { color: ' + g.bufferFg + ' !important; background-color: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; font-size: ' + g.bufferSize + ' !important; line-height: ' + g.bufferLineHeight + ' !important; }\n' +
-      '.BufferWindow span { color: ' + g.bufferFg + ' !important; }\n' +
-      '.BufferWindow span.reverse { color: ' + g.bufferBg + ' !important; background-color: ' + g.bufferFg + ' !important; }\n' +
-      '.BufferWindow .Style_input { color: ' + g.inputFg + ' !important; }\n' +
-      '.BufferWindow .Style_emphasized { color: ' + g.emphFg + ' !important; }\n' +
-      '.BufferWindow .Style_header { color: ' + g.headerFg + ' !important; }\n' +
-      '.BufferWindow .Style_subheader,\n' +
-      '.BufferWindow .Style_alert { color: ' + g.headerFg + ' !important; }\n' +
-      '.BufferWindow .Input,\n' +
-      '.BufferWindow textarea.Input { color: ' + g.inputFg + ' !important; caret-color: ' + g.inputFg + '; font-family: ' + g.monoFamily + ' !important; }\n' +
-      '.GridWindow { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; font-family: ' + g.monoFamily + ' !important; font-size: ' + g.gridSize + ' !important; line-height: ' + g.gridLineHeight + ' !important; padding: 4px 12px !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; box-sizing: border-box !important; }\n' +
-      '.GridWindow span { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
-      '.GridWindow span.reverse { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
-      '#loadingpane { color: ' + g.bufferFg + '; background: ' + g.bodyBg + '; font-family: ' + g.monoFamily + '; }\n' +
-      '.WindowFrame { background: transparent !important; }\n' +
-      'div#gameport { background: linear-gradient(to bottom, ' + g.gridBg + ' 0px, ' + g.gridBg + ' ' + ((parseInt(g.gridLineHeight) || 20) + 10) + 'px, ' + g.bufferBg + ' ' + ((parseInt(g.gridLineHeight) || 20) + 10) + 'px) !important; }\n' +
-      '* { scrollbar-color: ' + sb.thumb + ' ' + sb.track + '; }\n' +
-      '::-webkit-scrollbar { width: 10px; background: ' + sb.track + '; }\n' +
-      '::-webkit-scrollbar-thumb { background: ' + sb.thumb + '; border-radius: 4px; }\n' +
-      '::-webkit-scrollbar-thumb:hover { background: ' + sb.thumbHover + '; }\n';
-    document.head.appendChild(style);
-    setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 50);
-  }
-
-  function removePlatformTheme() {
-    var el = document.getElementById('platform-theme-override');
-    if (el) el.remove();
-    setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 50);
-  }
-
-  window.addEventListener('message', function(e) {
-    if (!e.data) return;
-    if (e.data.type === 'ifhub:applyTheme') {
-      document.body.classList.add('platform-theme-active');
-      applyPlatformTheme(e.data.game, e.data.scrollbar);
-    }
-    if (e.data.type === 'ifhub:restoreOverlay') {
-      document.body.classList.remove('platform-theme-active');
-      removePlatformTheme();
-    }
-  });
-
-  // Auto-apply theme from URL param (full-page mode from hub)
-  var urlTheme = new URLSearchParams(window.location.search).get('theme');
-  if (urlTheme && urlTheme !== 'classic') {
-    var s = document.createElement('script');
-    s.src = '/ifhub/themes.js';
-    s.onload = function() {
-      var t = getTheme(urlTheme);
-      if (t) {
-        document.body.classList.add('platform-theme-active');
-        applyPlatformTheme(t.game, t.scrollbar);
-      }
-    };
-    document.head.appendChild(s);
+    start();
   }
 })();
 </script>
