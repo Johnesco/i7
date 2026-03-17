@@ -23,12 +23,18 @@ C:\code\ifhub\
 │   ├── descriptions-adaptive-text.md ← Descriptions, quantifiers, adaptive text, dynamic change
 │   ├── rulebooks.md       ← Action processing order, rules, going, persuasion, senses
 │   ├── activities-phrases.md ← Activities, phrase definitions, control flow, decisions
+│   ├── project-guide.md   ← Build, test, publish workflows (referenced by all project CLAUDE.md files)
 │   ├── sound.md           ← Sound architecture: native blorb, decision record
 │   ├── sound-overlay/     ← Archived JS overlay system (replaced by native blorb)
 │   ├── css-overlay.md     ← CSS overlay system: three-tier theming architecture for play.html
 │   ├── glk-styling.md    ← Glk text styles, colors, images, windows, hyperlinks (Emglken/AsyncGlk stack)
 │   ├── parchment-troubleshooting.md ← Web player errors, sound gotchas, binary format
-│   └── windows-pitfalls.md ← Git Bash grep/subshell issues, MSYS2 interpreter build
+│   ├── windows-pitfalls.md ← Git Bash grep/subshell issues, MSYS2 interpreter build
+│   ├── writing-with-inform.md ← OFFICIAL: Complete Inform 7 manual (25K lines, 27 chapters, ~500 examples)
+│   ├── recipe-book.md      ← OFFICIAL: Problem-oriented companion (patterns by effect)
+│   ├── inform7-contents.txt ← Table of contents for official docs
+│   ├── inform7-handbook-v3.pdf ← Jim Aikin's Handbook v3.0 (community guide, current for 10.1.2)
+│   └── inform7-for-programmers.pdf ← Ron Newcomb's guide (I7 explained for programmers)
 ├── tools/
 │   ├── lib/               ← Shared Python library modules
 │   │   ├── paths.py            ← Path resolution, compiler paths, project dirs
