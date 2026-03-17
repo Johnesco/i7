@@ -44,8 +44,8 @@ C:\code\ifhub\
 │   │   ├── web.py              ← Web player utilities (base64, templates, validation)
 │   │   ├── git.py              ← Git/GitHub operations
 │   │   └── regex.py            ← PCRE pattern utilities (\K conversion)
-│   ├── build_site.py      ← Assemble _site/ from flat project layout for deployment
-│   ├── snapshot.py        ← Freeze/update version snapshots (recompiles from frozen source)
+│   ├── build_site.py      ← Assemble _site/ for deployment (legacy — zork1 only)
+│   ├── snapshot.py        ← Freeze/update version snapshots (legacy — zork1 only)
 │   ├── compile.py         ← I7→I6→Glulx→Blorb→web player compilation
 │   ├── pipeline.py        ← Unified build pipeline orchestrator
 │   ├── publish.py         ← Publish a project to its own GitHub Pages repo
@@ -102,7 +102,7 @@ C:\code\ifhub\
 │   ├── feverdream/        ← Fever Dream
 │   ├── sample/            ← Sample practice game
 │   └── zork1/             ← Zork I: Inform 7 Edition
-│       ├── v0/, v1/, ...  ← Frozen version snapshots (flat layout)
+│       ├── v0/, v1/, ...  ← Frozen version snapshots (legacy, zork1 only)
 │       ├── lib/parchment/ ← Parchment engine + latest game binary
 │       └── index.html     ← Landing page (+ play.html, source.html, etc.)
 └── ifhub/                 ← IF Hub web player
@@ -216,11 +216,8 @@ python /c/code/ifhub/tools/pipeline.py zork1
 # Compile + test
 python /c/code/ifhub/tools/pipeline.py zork1 compile test
 
-# Full pipeline (no snapshot)
+# Full pipeline
 python /c/code/ifhub/tools/pipeline.py zork1 --all       # compile test push
-
-# Version release
-python /c/code/ifhub/tools/pipeline.py zork1 --ship --version v3   # compile test snapshot push
 
 # Resume after failure
 python /c/code/ifhub/tools/pipeline.py zork1 --continue
@@ -237,7 +234,6 @@ python /c/code/ifhub/tools/pipeline.py zork1 --continue
 |-------|-------------|-------|
 | **compile** | I7 → I6 → Glulx → Blorb(if sound) → web player | `compile.py` |
 | **test** | Walkthrough + regtest + guide regen + sync to web root | `run_walkthrough.py`, `generate-guide.py`, `run_tests.py` |
-| **snapshot** | Sync root source to `vN/`, recompile from it | `snapshot.py` (requires `--version`) |
 | **push** | Stage changes, show summary, prompt before commit/push | `git` |
 
 Default with no stages = `compile` only. Stages are reordered to pipeline order automatically.
@@ -248,9 +244,7 @@ The pipeline reads `PIPELINE_*` fields from `tests/project.conf`:
 
 ```bash
 PIPELINE_SOUND=true                 # compile with --sound
-PIPELINE_VERSIONED=true             # has version directories (v0/, v1/, etc.)
-PIPELINE_CURRENT_VERSION=""          # empty = current (root), or "vN" for snapshot
-PIPELINE_HUB_ID="zork1"            # game ID in games.json (bare = current)
+PIPELINE_HUB_ID="zork1"            # game ID in games.json
 PIPELINE_TESTS="walkthrough,regtest"  # available test types
 ```
 
@@ -472,105 +466,19 @@ Games in these formats are already self-contained HTML — just create `play.htm
 
 ## New Game Publish Flow
 
-End-to-end steps to go from a `story.ni` file to a fully deployed game on IF Hub. Every step uses a script — no manual file creation.
-
-### Step 1: Write the game
-
-Create `projects/<name>/story.ni` (or use an existing source file). The first line must be `"Title" by "Author"`. No colons in the title (Windows filename limitation — use dashes instead).
-
-### Step 2: First compile
-
-```bash
-python /c/code/ifhub/tools/compile.py <name>
-```
-
-Generates: `<name>.ulx`, `play.html`, `walkthrough.html`, Parchment libraries. If `tests/inform7/walkthrough.txt` exists, also generates the transcript and guide automatically.
-
-### Step 3: Create the walkthrough
-
-Play the game and record a transcript using one of these methods:
-
-**A. From a TRANSCRIPT file** (preferred — works in Parchment, IDE, or any interpreter):
-1. Play the game and type `TRANSCRIPT` at the prompt to start recording
-2. Play through to completion
-3. Save/download the transcript file
-4. Extract commands:
-```bash
-mkdir -p projects/<name>/tests/inform7
-python /c/code/ifhub/tools/extract_commands.py transcript.txt \
-    -o projects/<name>/tests/inform7/walkthrough.txt
-```
-
-**B. From `Test me` in source** (for games with built-in test commands):
-```bash
-mkdir -p projects/<name>/tests/inform7
-python /c/code/ifhub/tools/extract_commands.py --from-source projects/<name>/story.ni \
-    -o projects/<name>/tests/inform7/walkthrough.txt
-```
-
-**C. Manual** (for short games): Write commands directly into `projects/<name>/tests/inform7/walkthrough.txt`, one per line.
-
-### Step 4: Recompile (with walkthrough)
-
-```bash
-python /c/code/ifhub/tools/compile.py <name>
-```
-
-Now that `tests/inform7/walkthrough.txt` exists, compile.py automatically:
-- Runs the commands through `glulxe.exe` → generates `walkthrough_output.txt`
-- Runs `generate-guide.py` → generates `walkthrough-guide.txt`
-- Copies all walkthrough files to the web root
-
-### Step 5: Generate landing page + source browser
-
-```bash
-python /c/code/ifhub/tools/web/generate_pages.py \
-    --title "Game Title" \
-    --meta "Subtitle" \
-    --description "Game description" \
-    --out projects/<name>
-```
-
-Generates: `index.html` (landing page with Play/Source/Walkthrough links), `source.html` (syntax-highlighted source browser).
-
-### Step 6: Register in IF Hub
-
-```bash
-python /c/code/ifhub/tools/register_game.py \
-    --name <name> \
-    --title "Game Title" \
-    --meta "Subtitle" \
-    --description "Game description"
-```
-
-Adds entries to `ifhub/games.json` and `ifhub/cards.json`. Prints a reminder to run `publish.py`.
-
-### Step 7: Publish to GitHub Pages
-
-```bash
-python /c/code/ifhub/tools/publish.py <name>
-```
-
-First run: creates `Johnesco/<name>` GitHub repo, pushes all files, enables GitHub Pages (workflow deployment via GitHub Actions). If no workflow file exists, publish.py auto-generates one. Subsequent runs: commits and pushes changes.
-
-### Step 8: Push hub changes
-
-```bash
-python /c/code/ifhub/tools/push_hub.py <name>
-```
-
-Stages `games.json` and `cards.json`, commits, and pushes. Skips if no changes.
-
-### Quick reference
+End-to-end steps from `story.ni` to a fully deployed game on IF Hub. See `reference/project-guide.md` for detailed instructions and command examples. Quick reference:
 
 | Step | Script | What it produces |
 |------|--------|-----------------|
+| Scaffold | `tools/new_project.py` | Project directory with source, tests, CI, CLAUDE.md |
 | Compile | `tools/compile.py` | `.ulx`, `play.html`, `walkthrough.html`, transcript, guide |
 | Extract commands | `tools/extract_commands.py` | `walkthrough.txt` from transcript or source |
 | Generate pages | `tools/web/generate_pages.py` | `index.html`, `source.html` |
 | Register | `tools/register_game.py` | `games.json` + `cards.json` entries |
 | Publish | `tools/publish.py` | GitHub repo + Pages deployment |
 | Push hub | `tools/push_hub.py` | Commits + pushes hub registry to GitHub |
+
+No colons in game titles (Windows filename limitation — use dashes instead).
 
 ## Projects
 
@@ -582,22 +490,13 @@ Each Inform 7 project lives under `C:\code\ifhub\projects\`.
 - Other repos (like `C:\code\resume\writing\`) may contain **read-only snapshots** of source for display — those are NOT for compilation or editing
 - When a project compiles, the output (.ulx, .ulx.js) is used by the project's own web player
 
-### Version Convention
+### Versioning (Legacy — zork1 only)
 
-All versioned projects follow the same two-tier model:
-
-- **vN** (v0, v1, v2...) — frozen published snapshots in `vN/` directories. Each has a subtitle (e.g., "v3 — Multimedia"). Immutable once published. Contains its own `story.ni` and compiled binary.
-- **Current** — the root `story.ni`, always in progress. Displayed as "Game Name (Current)" in the hub dropdown and landing page. No version number. Changes freely. When ready, frozen into the next numbered version.
-
-In `games.json`, frozen versions use IDs like `gamename-vN`; current uses just `gamename`. In `cards.json`, current is the primary card entry.
-
-### Version Snapshots (opt-in)
-
-Projects with multiple playable milestones store frozen snapshots in `vN/` directories at the project root (flat layout). Tools: `snapshot.py` (freeze/update), `build_site.py` (assemble `_site/` for local preview). GitHub Actions assembles `_site/` from site-level files + version directories. The `_site/` directory is gitignored. `snapshot.py --update` recompiles from the version's own frozen `story.ni` (never overwrites it) and auto-detects `.gblorb` vs `.ulx` binary type.
+The `vN/` directory model (frozen snapshots with `snapshot.py` and `build_site.py`) is deployed legacy for zork1 and dracula. New projects should not use versioning — flat layout with a single `story.ni` is the standard. See `projects/zork1/CLAUDE.md` for the versioning workflow if maintaining those projects.
 
 ### Standard Project Layout
 
-Every project follows this baseline structure. Each has a `CLAUDE.md` with project-specific details.
+Every project follows this baseline structure. Each has a `CLAUDE.md` that references `reference/project-guide.md` for shared workflows.
 
 ```
 projects/<game>/
@@ -624,20 +523,20 @@ projects/<game>/
 
 Optional additions per project:
 - `Sounds/` + `<game>.gblorb` + `<game>.blurb` — sound projects (zork1, feverdream)
-- `v0/`, `v1/`, etc. — versioned projects with frozen snapshots (zork1, dracula)
+- `v0/`, `v1/`, etc. — version snapshots (legacy — zork1, dracula only)
 - `<game>.regtest` — projects with regression test suites (zork1, sample)
 - `README.md` — public-facing description (zork1, dracula)
 
 ### Known Projects
 
-| Project | Sound | Versions | CSS Effects | Tests |
-|---|---|---|---|---|
-| zork1 | blorb (v3+) | v0–v3 | Mood palettes, CRT, tree, egg, sword (v3) | walkthrough, regtest, scenarios |
-| dracula | No | v0 (BASIC) | Static dark theme | walkthrough |
-| feverdream | blorb | None | Mood palettes, monitor, glass, fungus, spray | walkthrough (scoreless) |
-| sample | No | None | Static dark theme | walkthrough, regtest |
+| Project | Sound | CSS Effects | Tests |
+|---|---|---|---|
+| zork1 | blorb (v3+) | Mood palettes, CRT, tree, egg, sword (v3) | walkthrough, regtest, scenarios |
+| dracula | No | Static dark theme | walkthrough |
+| feverdream | blorb | Mood palettes, monitor, glass, fungus, spray | walkthrough (scoreless) |
+| sample | No | Static dark theme | walkthrough, regtest |
 
-All projects have `CLAUDE.md`, `project.conf`, and delegate to the shared testing framework. See `reference/css-overlay.md` for the play.html theming architecture.
+All projects have `CLAUDE.md` referencing `reference/project-guide.md`, plus `project.conf` for the shared testing framework. See `reference/css-overlay.md` for the play.html theming architecture.
 
 Games with `overlayLabel` in `games.json` (zork1 v3+, feverdream, seasons) show an overlay toggle in the hub's style dropdown.
 
