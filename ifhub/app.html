@@ -50,21 +50,21 @@ body.game-collapsed #resize-handle {
   background: var(--page-bg, #0a0a0a);
 }
 
-.source-toolbar {
-  padding: 6px 12px;
-  background: var(--toolbar-bg, #0e0a08);
-  border-bottom: 1px solid var(--border, #2a2418);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 0.85em;
+/* --- Sidebar header (file path, line count) --- */
+.sidebar-header {
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid var(--card-border, #1a1810);
+  font-size: 0.82em;
   color: var(--muted, #806050);
-  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
 }
 
-.source-toolbar .file-path {
+.sidebar-header .file-path {
   font-family: "SF Mono", "Fira Code", Consolas, "Courier New", monospace;
-  font-size: 0.9em;
+  font-size: 0.95em;
   color: var(--muted, #a08060);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -72,47 +72,29 @@ body.game-collapsed #resize-handle {
   min-width: 0;
 }
 
-.source-toolbar .line-count {
+.sidebar-header .line-count {
   white-space: nowrap;
-  flex-shrink: 0;
+  color: var(--dim, #4a3a28);
+  font-size: 0.9em;
 }
 
-.source-toolbar .spacer {
-  flex: 1;
-}
-
-.search-box {
+.sidebar .search-box {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 6px 8px;
   background: var(--input-bg, #110a08);
   border: 1px solid var(--border, #2a2418);
   border-radius: 4px;
   color: var(--page-fg, #d4c5a9);
   font-family: "SF Mono", "Fira Code", Consolas, "Courier New", monospace;
-  font-size: 0.9em;
-  padding: 3px 8px;
-  width: 160px;
-  min-width: 80px;
+  font-size: 0.82em;
+  padding: 4px 8px;
   outline: none;
+  box-sizing: border-box;
 }
 
-.search-box:focus { border-color: var(--border-hover, #5a4a30); }
-.search-box::placeholder { color: var(--dim, #4a3a28); }
-
-.btn-dismiss {
-  background: none;
-  border: 1px solid var(--border-hover, #3a2a18);
-  border-radius: 4px;
-  color: var(--muted, #806050);
-  font-size: 1em;
-  cursor: pointer;
-  padding: 2px 8px;
-  line-height: 1;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.btn-dismiss:hover {
-  color: var(--page-fg, #d4c5a9);
-  border-color: var(--muted, #6a5a40);
-}
+.sidebar .search-box:focus { border-color: var(--border-hover, #5a4a30); }
+.sidebar .search-box::placeholder { color: var(--dim, #4a3a28); }
 
 /* --- Source with nav sidebar --- */
 .source-with-nav {
@@ -242,40 +224,9 @@ tr:target td.ln, tr.highlight td.ln { color: var(--muted, #806050); }
   outline: 1px solid #aa8030;
 }
 
-/* --- View tabs --- */
-.view-tabs {
-  display: flex;
-  gap: 2px;
-}
+/* view-tabs replaced by #view-select dropdown */
 
-.view-tab {
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  color: var(--muted, #605040);
-  font-family: inherit;
-  font-size: 0.85em;
-  cursor: pointer;
-  padding: 3px 12px;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.view-tab:hover {
-  color: var(--heading-fg, #c0a880);
-}
-
-.view-tab.active {
-  color: var(--accent, #e8d090);
-  border-color: var(--border, #2a2418);
-  background: var(--toolbar-bg, #0e0a08);
-}
-
-/* --- Source toolbar context (search, line count) --- */
-.source-context {
-  display: contents;
-}
-
-/* --- Walkthrough toolbar context (placeholder controls) --- */
+/* --- Walkthrough status in sidebar --- */
 .walkthrough-context {
   display: contents;
 }
@@ -332,13 +283,13 @@ body.resizing iframe {
 
 .game-toolbar {
   grid-column: 1 / -1;
-  padding: 6px 12px;
+  padding: 4px 10px;
   background: var(--toolbar-bg, #0e0a08);
   border-bottom: 1px solid var(--border, #2a2418);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 12px;
+  gap: 4px 8px;
   font-size: 13px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -358,7 +309,24 @@ body.resizing iframe {
   outline: none;
 }
 
-#game-select:focus { border-color: var(--border-hover, #5a4a30); }
+#game-select:focus, #view-select:focus { border-color: var(--border-hover, #5a4a30); }
+
+#view-select {
+  background: var(--input-bg, #110a08);
+  border: 1px solid var(--border, #2a2418);
+  border-radius: 4px;
+  color: var(--accent, #e8d090);
+  font-family: inherit;
+  font-size: 0.9em;
+  padding: 3px 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+#view-select option {
+  background: var(--input-bg, #110a08);
+  color: var(--page-fg, #d4c5a9);
+}
 
 #game-select option {
   background: var(--input-bg, #110a08);
@@ -404,6 +372,30 @@ body.resizing iframe {
   cursor: pointer;
 }
 
+/* --- Toolbar icon buttons --- */
+.tb-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-hover, #3a2a18);
+  border-radius: 4px;
+  color: var(--muted, #806050);
+  font-size: 14px;
+  cursor: pointer;
+  background: none;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
+  padding: 0;
+}
+
+.tb-icon-btn:hover {
+  color: var(--accent, #e8d090);
+  border-color: var(--muted, #6a5a40);
+}
+
 /* --- Hub indicator --- */
 .hub-indicator {
   font-size: 0.85em;
@@ -422,22 +414,43 @@ body.resizing iframe {
   border-bottom-color: var(--border-hover, #5a4a30);
 }
 
-/* --- Full Page button --- */
-.btn-fullpage {
-  background: none;
-  border: 1px solid var(--border-hover, #3a2a18);
-  border-radius: 4px;
-  color: var(--muted, #806050);
-  font-family: inherit;
-  font-size: 0.85em;
-  cursor: pointer;
-  padding: 3px 12px;
-  transition: color 0.15s, border-color 0.15s;
+/* --- Hamburger menu --- */
+.hamburger-wrap {
+  position: relative;
 }
 
-.btn-fullpage:hover {
+.hamburger-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--card-bg, #111);
+  border: 1px solid var(--border, #2a2418);
+  border-radius: 4px;
+  min-width: 140px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.hamburger-menu.open { display: block; }
+
+.hamburger-menu a {
+  display: block;
+  padding: 8px 14px;
+  color: var(--page-fg, #d4c5a9);
+  text-decoration: none;
+  font-size: 0.88em;
+  transition: background 0.1s;
+}
+
+.hamburger-menu a:hover {
+  background: var(--surface-bg, #1a1410);
   color: var(--accent, #e8d090);
-  border-color: var(--muted, #6a5a40);
+}
+
+.hamburger-menu a + a {
+  border-top: 1px solid var(--border, #2a2418);
 }
 
 /* --- Responsive --- */
@@ -473,15 +486,6 @@ body.resizing iframe {
 
   #volume-slider { width: 50px; }
 
-  .source-toolbar {
-    flex-wrap: wrap;
-    gap: 6px 10px;
-    padding: 6px 8px;
-  }
-
-  .source-toolbar .file-path { max-width: 50vw; }
-
-  .search-box { width: 100px; min-width: 60px; }
 }
 
 @media (max-width: 480px) {
@@ -492,14 +496,9 @@ body.resizing iframe {
 
   #game-select { max-width: 55vw; font-size: 0.85em; }
 
-  .btn-fullpage { padding: 3px 8px; font-size: 0.8em; }
-
   .hub-indicator { font-size: 0.8em; padding: 2px 8px; }
 
-  .view-tab { font-size: 0.85em; padding: 4px 8px; }
-
-  .source-toolbar .file-path { max-width: 40vw; font-size: 0.8em; }
-  .source-toolbar .line-count { display: none; }
+  .sidebar-header .line-count { display: none; }
 }
 </style>
 <script src="themes.js"></script>
@@ -509,12 +508,8 @@ body.resizing iframe {
 
 <!-- ===== TOP TOOLBAR ===== -->
 <div class="game-toolbar">
-  <span style="color:var(--muted, #806050);">Load Game:</span>
   <select id="game-select"></select>
-  <a id="library-link" class="hub-indicator" href=".">Library</a>
-  <a id="hub-indicator" class="hub-indicator" href="." style="display:none;"></a>
   <div id="theme-picker"></div>
-  <span class="spacer"></span>
   <span id="sound-controls" style="display:none;">
     <button id="mute-btn" title="Toggle sound">
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -531,11 +526,22 @@ body.resizing iframe {
     </button>
     <input type="range" id="volume-slider" min="0" max="100" value="70" title="Volume">
   </span>
-  <div class="view-tabs">
-    <button class="view-tab active" data-view="source">Source</button>
-    <button class="view-tab" data-view="walkthrough">Walkthrough</button>
+  <span class="spacer"></span>
+  <select id="view-select" title="Layout">
+    <option value="game+source">Game + Source</option>
+    <option value="game+walkthrough">Game + Walkthrough</option>
+    <option value="game">Game Only</option>
+    <option value="source">Source Only</option>
+    <option value="walkthrough">Walkthrough Only</option>
+  </select>
+  <a id="hub-indicator" class="hub-indicator" href="." style="display:none;"></a>
+  <div class="hamburger-wrap">
+    <button class="tb-icon-btn" id="hamburger-btn" title="Menu">&#x2630;</button>
+    <div class="hamburger-menu" id="hamburger-menu">
+      <a id="library-link" href=".">Library</a>
+      <a id="btn-fullpage" href="#">Full Page</a>
+    </div>
   </div>
-  <button class="btn-fullpage" id="btn-fullpage" title="Leave IF Hub and play the game full page">Full Page &rarr;</button>
 </div>
 
 <!-- ===== GAME PANE ===== -->
@@ -548,21 +554,16 @@ body.resizing iframe {
 
 <!-- ===== SOURCE PANE ===== -->
 <div id="source-pane">
-  <div class="source-toolbar">
-    <span class="source-context" id="source-context">
-      <span class="file-path" id="source-filepath">story.ni</span>
-      <input type="text" class="search-box" id="search-source" placeholder="Search... (Ctrl+F)">
-    </span>
-    <span class="walkthrough-context" id="walkthrough-context">
-      <span class="wt-status" id="wt-status">Not yet available</span>
-    </span>
-    <span class="spacer"></span>
-    <span class="source-context"><span class="line-count" id="line-count"></span></span>
-    <button class="btn-dismiss" id="btn-toggle-game" title="Toggle game pane">Hide Game</button>
-    <button class="btn-dismiss" id="btn-dismiss" title="Hide panel">&times;</button>
-  </div>
   <div class="source-with-nav">
     <div class="sidebar" id="nav-sidebar">
+      <div class="sidebar-header">
+        <span class="file-path" id="source-filepath">story.ni</span>
+        <span class="line-count" id="line-count"></span>
+        <span class="walkthrough-context" id="walkthrough-context">
+          <span class="wt-status" id="wt-status"></span>
+        </span>
+      </div>
+      <input type="text" class="search-box" id="search-source" placeholder="Search source...">
       <div class="nav" id="nav"></div>
     </div>
     <div class="source-main" id="source-main">
@@ -638,7 +639,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var initGame = params.get('game') || games[0].id;
     if (!gameMap[initGame]) initGame = games[0].id;
     switchGame(initGame);
-    switchView('source');
+    applyView('game+source');
   });
 });
 
@@ -659,34 +660,9 @@ function buildDropdown() {
    BIND UI (once)
    ================================================================== */
 function bindUI() {
-  // Dismiss source pane (and ensure game is visible)
-  document.getElementById('btn-dismiss').addEventListener('click', function() {
-    document.body.classList.add('source-collapsed');
-    document.body.classList.remove('game-collapsed');
-  });
-
-  // Toggle game pane
-  var toggleGameBtn = document.getElementById('btn-toggle-game');
-  toggleGameBtn.addEventListener('click', function() {
-    var body = document.body;
-    body.classList.toggle('game-collapsed');
-    if (body.classList.contains('game-collapsed')) {
-      body.classList.remove('source-collapsed');
-    }
-    toggleGameBtn.textContent = body.classList.contains('game-collapsed') ? 'Show Game' : 'Hide Game';
-  });
-
-  // View tab switching (toggle pane visibility)
-  document.querySelectorAll('.view-tab').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var view = this.dataset.view;
-      if (currentView === view && !document.body.classList.contains('source-collapsed')) {
-        document.body.classList.add('source-collapsed');
-      } else {
-        document.body.classList.remove('source-collapsed');
-        switchView(view);
-      }
-    });
+  // View layout select
+  document.getElementById('view-select').addEventListener('change', function() {
+    applyView(this.value);
   });
 
   // Ctrl+F shortcut
@@ -742,8 +718,23 @@ function bindUI() {
     if (this.value !== currentGame) switchGame(this.value);
   });
 
-  // Full Page button — navigate to game's own play page
-  document.getElementById('btn-fullpage').addEventListener('click', function() {
+  // Hamburger menu toggle
+  var hamBtn = document.getElementById('hamburger-btn');
+  var hamMenu = document.getElementById('hamburger-menu');
+  hamBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    hamMenu.classList.toggle('open');
+  });
+  document.addEventListener('click', function() {
+    hamMenu.classList.remove('open');
+  });
+  hamMenu.addEventListener('click', function(e) {
+    hamMenu.classList.remove('open');
+  });
+
+  // Full Page — navigate to game's own play page
+  document.getElementById('btn-fullpage').addEventListener('click', function(e) {
+    e.preventDefault();
     var g = gameMap[currentGame];
     if (g && g.playUrl) {
       var sel = document.getElementById('style-select');
@@ -1008,21 +999,18 @@ function loadSourceForGame(gameId) {
 /* ==================================================================
    VIEW SWITCHING — source / walkthrough tabs
    ================================================================== */
-function switchView(viewName) {
-  currentView = viewName;
+function applyView(mode) {
+  // mode: "game+source", "game+walkthrough", "game", "source", "walkthrough"
+  var body = document.body;
+  var showGame = mode.indexOf('game') !== -1;
+  var showSide = mode !== 'game';
+  var isSource = mode.indexOf('source') !== -1 || mode === 'game';
 
-  document.querySelectorAll('.view-tab').forEach(function(btn) {
-    btn.classList.toggle('active', btn.dataset.view === viewName);
-  });
+  body.classList.toggle('source-collapsed', !showSide);
+  body.classList.toggle('game-collapsed', !showGame);
 
-  var sourceCtxEls = document.querySelectorAll('.source-context');
-  var wtCtx = document.getElementById('walkthrough-context');
-  var isSource = viewName === 'source';
-
-  sourceCtxEls.forEach(function(el) {
-    el.style.display = isSource ? '' : 'none';
-  });
-  wtCtx.style.display = isSource ? 'none' : '';
+  // Update currentView for source content switching
+  currentView = isSource ? 'source' : 'walkthrough';
 
   var g = gameMap[currentGame];
   var isBrowser = g && g.sourceBrowser;
@@ -1031,6 +1019,10 @@ function switchView(viewName) {
   document.querySelector('.source-with-nav').style.display = (isSource && !isBrowser) ? '' : 'none';
   browserFrame.style.display = (isSource && isBrowser) ? '' : 'none';
   document.getElementById('walkthrough-content').style.display = isSource ? 'none' : 'flex';
+
+  // Show/hide sidebar elements based on source vs walkthrough
+  var sidebar = document.getElementById('nav-sidebar');
+  if (sidebar) sidebar.style.display = isSource ? '' : 'none';
 }
 
 /* ==================================================================
@@ -1125,13 +1117,9 @@ function buildStyleDropdown(gameId) {
   if (!container) return;
   container.innerHTML = '';
 
-  var label = document.createElement('label');
-  label.textContent = 'Style: ';
-  label.htmlFor = 'style-select';
-  label.style.cssText = 'color:var(--muted);font-size:0.85em;white-space:nowrap;cursor:pointer;';
-
   var select = document.createElement('select');
   select.id = 'style-select';
+  select.title = 'Theme';
   select.style.cssText = 'background:var(--input-bg);border:1px solid var(--border);color:var(--accent);border-radius:4px;padding:3px 8px;font-family:inherit;font-size:0.85em;cursor:pointer;';
 
   var g = gameId ? gameMap[gameId] : null;
@@ -1173,26 +1161,37 @@ function buildStyleDropdown(gameId) {
     var val = this.value;
     if (gameId) setStylePref(gameId, val);
 
+    var gEntry = gameId ? gameMap[gameId] : null;
+    var hasOverlay = gEntry && gEntry.overlayLabel;
+
     if (val === 'overlay' || val === 'classic') {
       // Classic = game's native look; overlay = game's native overlay
       var classic = getTheme('classic');
       applyChrome(classic);
-      sendGameMessage({ type: 'ifhub:restoreOverlay' });
+      if (hasOverlay) {
+        sendGameMessage({ type: 'ifhub:restoreOverlay' });
+      } else {
+        // Non-overlay: remove any injected theme
+        var gf = document.getElementById('game-frame');
+        if (gf) removeThemeCSS(gf);
+      }
     } else {
       // Apply platform theme to chrome and game
       var theme = getTheme(val);
       setThemeId(val);
       applyChrome(theme);
-      sendGameMessage({
-        type: 'ifhub:applyTheme',
-        game: theme.game,
-        scrollbar: theme.scrollbar
-      });
+      if (hasOverlay) {
+        sendGameMessage({
+          type: 'ifhub:applyTheme',
+          game: theme.game,
+          scrollbar: theme.scrollbar
+        });
+      }
+      // themeAllIframes handles direct injection for non-overlay games
     }
     themeAllIframes();
   });
 
-  container.appendChild(label);
   container.appendChild(select);
 
   // Apply current selection
@@ -1200,23 +1199,36 @@ function buildStyleDropdown(gameId) {
 }
 
 function applyCurrentStyle(gameId, val) {
+  var gEntry = gameId ? gameMap[gameId] : null;
+  var hasOverlay = gEntry && gEntry.overlayLabel;
+
   if (val === 'overlay' || val === 'classic') {
     // Classic = game's native look (no override); overlay = game's native overlay
     var classic = getTheme('classic');
     applyChrome(classic);
-    setTimeout(function() { sendGameMessage({ type: 'ifhub:restoreOverlay' }); }, 500);
+    if (hasOverlay) {
+      setTimeout(function() { sendGameMessage({ type: 'ifhub:restoreOverlay' }); }, 500);
+    } else {
+      setTimeout(function() {
+        var gf = document.getElementById('game-frame');
+        if (gf) removeThemeCSS(gf);
+      }, 500);
+    }
   } else {
     var theme = getTheme(val);
     applyChrome(theme);
-    setTimeout(function() {
-      sendGameMessage({
-        type: 'ifhub:applyTheme',
-        game: theme.game,
-        scrollbar: theme.scrollbar
-      });
-    }, 500);
+    if (hasOverlay) {
+      setTimeout(function() {
+        sendGameMessage({
+          type: 'ifhub:applyTheme',
+          game: theme.game,
+          scrollbar: theme.scrollbar
+        });
+      }, 500);
+    }
+    // themeAllIframes handles direct injection for non-overlay games
   }
-  themeAllIframes();
+  setTimeout(function() { themeAllIframes(); }, 500);
 }
 
 function sendGameMessage(msg) {
@@ -1227,49 +1239,157 @@ function sendGameMessage(msg) {
 }
 
 /* ==================================================================
-   THEME IFRAMES (source browser, walkthrough)
+   THEME IFRAMES (source browser, walkthrough, game)
    ================================================================== */
-function themeIframe(iframe) {
-  if (!iframe || !iframe.src || iframe.src === 'about:blank') return;
+
+// Chrome-style rules for document pages (source, walkthrough, landing)
+function buildChromeCSS(c, sb) {
+  return 'html, body { background: ' + c.pageBg + ' !important; color: ' + c.pageFg + ' !important; }\n' +
+    'h1, h2, h3, h4, strong { color: ' + c.headingFg + ' !important; }\n' +
+    'a { color: ' + c.accentFg + ' !important; }\n' +
+    'a:hover { color: ' + c.btnHoverBg + ' !important; }\n' +
+    'input, select, textarea { background: ' + c.inputBg + ' !important; color: ' + c.inputFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
+    'button { background: ' + c.btnBg + ' !important; color: ' + c.btnFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
+    'button:hover { background: ' + c.btnHoverBg + ' !important; }\n' +
+    'button.active, .tab-btn.active, .mode-btn.active { background: ' + c.activeTabBg + ' !important; color: ' + c.activeTabFg + ' !important; }\n' +
+    'pre, code { background: ' + c.codeBg + ' !important; color: ' + c.codeFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
+    'table, th, td, tr { border-color: ' + c.border + ' !important; }\n' +
+    'th { color: ' + c.headingFg + ' !important; }\n' +
+    'td { color: ' + c.pageFg + ' !important; }\n' +
+    '.toolbar, .source-toolbar, .wt-toolbar, header, nav { background: ' + c.toolbarBg + ' !important; border-color: ' + c.border + ' !important; color: ' + c.mutedFg + ' !important; }\n' +
+    '.sidebar, .nav, .wt-sidebar { background: ' + c.toolbarBg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
+    '.nav-item, .wt-nav-item, .sidebar a { color: ' + c.mutedFg + ' !important; }\n' +
+    '.nav-item.active, .wt-nav-item.active, .sidebar a.active { color: ' + c.headingFg + ' !important; border-left-color: ' + c.accentFg + ' !important; background: ' + c.surfaceBg + ' !important; }\n' +
+    'footer { color: ' + c.footerFg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
+    buildScrollbarCSS(sb);
+}
+
+// Parchment-style rules for Inform 7 / Z-machine game iframes
+function buildParchmentCSS(g, sb) {
+  return 'body, html { background: ' + g.bodyBg + ' !important; }\n' +
+    '.BufferWindow { color: ' + g.bufferFg + ' !important; background-color: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; font-size: ' + g.bufferSize + ' !important; line-height: ' + g.bufferLineHeight + ' !important; }\n' +
+    '.BufferWindow span { color: ' + g.bufferFg + ' !important; }\n' +
+    '.BufferWindow span.reverse { color: ' + g.bufferBg + ' !important; background-color: ' + g.bufferFg + ' !important; }\n' +
+    '.BufferWindow .Style_input { color: ' + g.inputFg + ' !important; }\n' +
+    '.BufferWindow .Style_emphasized { color: ' + g.emphFg + ' !important; }\n' +
+    '.BufferWindow .Style_header { color: ' + g.headerFg + ' !important; }\n' +
+    '.BufferWindow .Style_subheader,\n' +
+    '.BufferWindow .Style_alert { color: ' + g.headerFg + ' !important; }\n' +
+    '.BufferWindow .Input,\n' +
+    '.BufferWindow textarea.Input { color: ' + g.inputFg + ' !important; caret-color: ' + g.inputFg + '; font-family: ' + g.monoFamily + ' !important; }\n' +
+    '.GridWindow { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; padding: 4px 12px !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; box-sizing: border-box !important; }\n' +
+    '.GridWindow span { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
+    '.GridWindow span.reverse { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
+    '#loadingpane { color: ' + g.bufferFg + '; background: ' + g.bodyBg + '; font-family: ' + g.monoFamily + '; }\n' +
+    '.WindowFrame { background: transparent !important; }\n' +
+    'div#gameport { background: linear-gradient(to bottom, ' + g.gridBg + ' 0px, ' + g.gridBg + ' ' + ((parseInt(g.gridLineHeight) || 20) + 10) + 'px, ' + g.bufferBg + ' ' + ((parseInt(g.gridLineHeight) || 20) + 10) + 'px) !important; }\n' +
+    buildScrollbarCSS(sb);
+}
+
+// Ink-style rules for Ink/Inkle game iframes
+function buildInkCSS(g, sb) {
+  return 'body { background: ' + g.bodyBg + ' !important; color: ' + g.bufferFg + ' !important; font-family: ' + g.propFamily + ' !important; }\n' +
+    'h1 { color: ' + g.headerFg + ' !important; border-bottom-color: ' + g.gridBg + ' !important; }\n' +
+    '#story p { color: ' + g.bufferFg + ' !important; }\n' +
+    '.choice-echo { color: ' + g.gridFg + ' !important; }\n' +
+    '#choices { border-top-color: ' + g.gridBg + ' !important; }\n' +
+    '.choice { color: ' + g.inputFg + ' !important; font-family: ' + g.propFamily + ' !important; }\n' +
+    '.choice:hover { color: ' + g.headerFg + ' !important; }\n' +
+    '#end { color: ' + g.emphFg + ' !important; }\n' +
+    buildScrollbarCSS(sb);
+}
+
+// BASIC / generic web-only game rules
+function buildBasicCSS(g, sb) {
+  return 'body, html { background: ' + g.bodyBg + ' !important; color: ' + g.bufferFg + ' !important; font-family: ' + g.monoFamily + ' !important; }\n' +
+    'pre, .output, .terminal, #screen { color: ' + g.bufferFg + ' !important; background: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; }\n' +
+    'input, .input-line { color: ' + g.inputFg + ' !important; background: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; caret-color: ' + g.inputFg + '; }\n' +
+    buildScrollbarCSS(sb);
+}
+
+function buildScrollbarCSS(sb) {
+  return '* { scrollbar-color: ' + sb.thumb + ' ' + sb.track + ' !important; }\n' +
+    '::-webkit-scrollbar { width: 10px; background: ' + sb.track + ' !important; }\n' +
+    '::-webkit-scrollbar-thumb { background: ' + sb.thumb + ' !important; border-radius: 4px; }\n' +
+    '::-webkit-scrollbar-thumb:hover { background: ' + sb.thumbHover + ' !important; }\n';
+}
+
+function ensureRetroFontsInDoc(doc) {
+  try {
+    if (doc.getElementById('retro-platform-fonts')) return;
+    var link = doc.createElement('link');
+    link.id = 'retro-platform-fonts';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=DotGothic16&family=Pixelify+Sans&family=Press+Start+2P&family=Silkscreen&family=Sixtyfour&family=Tiny5&family=VT323&family=Workbench&display=swap';
+    doc.head.appendChild(link);
+  } catch(e) {}
+}
+
+function injectThemeCSS(iframe, css) {
   try {
     var doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
     if (!doc || !doc.head) return;
-
     var existing = doc.getElementById('ifhub-theme-override');
     if (existing) existing.remove();
-
-    var themeId = getThemeId();
-    var theme = getTheme(themeId);
-    if (themeId === 'classic') return;
-
-    var c = theme.chrome;
-    var sb = theme.scrollbar;
+    if (!css) return;
+    ensureRetroFontsInDoc(doc);
     var style = doc.createElement('style');
     style.id = 'ifhub-theme-override';
-    style.textContent =
-      'html, body { background: ' + c.pageBg + ' !important; color: ' + c.pageFg + ' !important; }\n' +
-      'h1, h2, h3, h4, strong { color: ' + c.headingFg + ' !important; }\n' +
-      'a { color: ' + c.accentFg + ' !important; }\n' +
-      'a:hover { color: ' + c.btnHoverBg + ' !important; }\n' +
-      'input, select, textarea { background: ' + c.inputBg + ' !important; color: ' + c.inputFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
-      'button { background: ' + c.btnBg + ' !important; color: ' + c.btnFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
-      'button:hover { background: ' + c.btnHoverBg + ' !important; }\n' +
-      'button.active, .tab-btn.active, .mode-btn.active { background: ' + c.activeTabBg + ' !important; color: ' + c.activeTabFg + ' !important; }\n' +
-      'pre, code { background: ' + c.codeBg + ' !important; color: ' + c.codeFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
-      'table, th, td, tr { border-color: ' + c.border + ' !important; }\n' +
-      'th { color: ' + c.headingFg + ' !important; }\n' +
-      'td { color: ' + c.pageFg + ' !important; }\n' +
-      '.toolbar, .source-toolbar, .wt-toolbar, header, nav { background: ' + c.toolbarBg + ' !important; border-color: ' + c.border + ' !important; color: ' + c.mutedFg + ' !important; }\n' +
-      '.sidebar, .nav, .wt-sidebar { background: ' + c.toolbarBg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
-      '.nav-item, .wt-nav-item, .sidebar a { color: ' + c.mutedFg + ' !important; }\n' +
-      '.nav-item.active, .wt-nav-item.active, .sidebar a.active { color: ' + c.headingFg + ' !important; border-left-color: ' + c.accentFg + ' !important; background: ' + c.surfaceBg + ' !important; }\n' +
-      'footer { color: ' + c.footerFg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
-      '* { scrollbar-color: ' + sb.thumb + ' ' + sb.track + ' !important; }\n' +
-      '::-webkit-scrollbar { background: ' + sb.track + ' !important; }\n' +
-      '::-webkit-scrollbar-thumb { background: ' + sb.thumb + ' !important; }\n' +
-      '::-webkit-scrollbar-thumb:hover { background: ' + sb.thumbHover + ' !important; }\n';
+    style.textContent = css;
     doc.head.appendChild(style);
   } catch(e) { /* cross-origin — can't inject */ }
+}
+
+function removeThemeCSS(iframe) {
+  try {
+    var doc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+    if (!doc || !doc.head) return;
+    var existing = doc.getElementById('ifhub-theme-override');
+    if (existing) existing.remove();
+  } catch(e) {}
+}
+
+// Theme a document-style iframe (source, walkthrough)
+function themeIframe(iframe) {
+  if (!iframe || !iframe.src || iframe.src === 'about:blank') return;
+  var themeId = getThemeId();
+  if (themeId === 'classic') { removeThemeCSS(iframe); return; }
+  var theme = getTheme(themeId);
+  injectThemeCSS(iframe, buildChromeCSS(theme.chrome, theme.scrollbar));
+}
+
+// Theme the game iframe (direct injection + postMessage fallback)
+function themeGameIframe() {
+  var iframe = document.getElementById('game-frame');
+  if (!iframe || !iframe.src || iframe.src === 'about:blank') return;
+
+  // Games with overlays use postMessage only — don't override
+  var g = currentGame ? gameMap[currentGame] : null;
+  if (g && g.overlayLabel) return;
+
+  var sel = document.getElementById('style-select');
+  var val = sel ? sel.value : getThemeId();
+  if (val === 'overlay' || val === 'classic') {
+    removeThemeCSS(iframe);
+    sendGameMessage({ type: 'ifhub:restoreOverlay' });
+    return;
+  }
+
+  var theme = getTheme(val);
+  var engine = g ? (g.engine || '') : '';
+  var css;
+  if (engine === 'ink') {
+    css = buildInkCSS(theme.game, theme.scrollbar);
+  } else if (engine === 'basic') {
+    css = buildBasicCSS(theme.game, theme.scrollbar);
+  } else {
+    // inform7, zmachine, or unknown — Parchment rules
+    css = buildParchmentCSS(theme.game, theme.scrollbar);
+  }
+  // Try direct injection (same-origin); also send postMessage (cross-origin fallback)
+  injectThemeCSS(iframe, css);
+  sendGameMessage({ type: 'ifhub:applyTheme', game: theme.game, scrollbar: theme.scrollbar });
+  try { iframe.contentWindow.dispatchEvent(new Event('resize')); } catch(e) {}
 }
 
 function themeAllIframes() {
@@ -1278,6 +1398,7 @@ function themeAllIframes() {
     var iframe = document.getElementById(id);
     if (iframe) themeIframe(iframe);
   });
+  themeGameIframe();
 }
 
 /* ==================================================================
@@ -1311,12 +1432,18 @@ function switchGame(gameId) {
   iframe.onload = function() {
     var sel = document.getElementById('style-select');
     if (sel && sel.value !== 'overlay' && sel.value !== 'classic') {
-      var theme = getTheme(sel.value);
-      sendGameMessage({
-        type: 'ifhub:applyTheme',
-        game: theme.game,
-        scrollbar: theme.scrollbar
-      });
+      if (g && g.overlayLabel) {
+        // Overlay games — use postMessage for their own listener
+        var theme = getTheme(sel.value);
+        sendGameMessage({
+          type: 'ifhub:applyTheme',
+          game: theme.game,
+          scrollbar: theme.scrollbar
+        });
+      } else {
+        // Non-overlay games — inject directly
+        themeGameIframe();
+      }
     }
   };
 

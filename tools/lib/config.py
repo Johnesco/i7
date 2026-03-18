@@ -395,6 +395,54 @@ def parse_pipeline_fields(conf_path: str | Path) -> dict[str, str]:
     return fields
 
 
+def extract_story_metadata(project_dir: str | Path) -> dict[str, str]:
+    """Extract bibliographic metadata from a project's story.ni.
+
+    Parses:
+      - Title and author from line 1: "Title" by "Author"
+      - The story headline is "..."
+      - The story description is "..."
+
+    Returns a dict with keys: title, author, meta, description.
+    All values default to sensible fallbacks if parsing fails.
+    """
+    source = Path(project_dir) / "story.ni"
+    result = {
+        "title": Path(project_dir).name.replace("-", " ").replace("_", " ").title(),
+        "author": "",
+        "meta": "An Interactive Fiction",
+        "description": "An interactive fiction game.",
+    }
+    if not source.exists():
+        return result
+
+    try:
+        text = source.read_text(encoding="utf-8")
+    except OSError:
+        return result
+
+    lines = text.split("\n")
+
+    # Line 1: "Title" by "Author"
+    if lines:
+        m = re.match(r'^"([^"]+)"\s+by\s+"([^"]+)"', lines[0])
+        if m:
+            result["title"] = m.group(1)
+            result["author"] = m.group(2)
+
+    # The story headline is "..."
+    m = re.search(r'The story headline is "([^"]+)"', text, re.IGNORECASE)
+    if m:
+        result["meta"] = m.group(1)
+
+    # The story description is "..."
+    m = re.search(r'The story description is "([^"]+)"', text, re.IGNORECASE)
+    if m:
+        result["description"] = m.group(1)
+
+    return result
+
+
 def get_golden_seed(project_dir: str | Path, engine_key: str = "glulxe") -> str | None:
     """Read the first seed for the given engine from tests/seeds.conf."""
     seeds_path = Path(project_dir) / "tests" / "seeds.conf"

@@ -185,7 +185,7 @@ div#gameport {
       '.BufferWindow .Style_alert { color: ' + g.headerFg + ' !important; }\n' +
       '.BufferWindow .Input,\n' +
       '.BufferWindow textarea.Input { color: ' + g.inputFg + ' !important; caret-color: ' + g.inputFg + '; font-family: ' + g.monoFamily + ' !important; }\n' +
-      '.GridWindow { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; font-family: ' + g.monoFamily + ' !important; font-size: ' + g.gridSize + ' !important; line-height: ' + g.gridLineHeight + ' !important; padding: 4px 12px !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; box-sizing: border-box !important; }\n' +
+      '.GridWindow { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; padding: 4px 12px !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; box-sizing: border-box !important; }\n' +
       '.GridWindow span { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
       '.GridWindow span.reverse { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
       '#loadingpane { color: ' + g.bufferFg + '; background: ' + g.bodyBg + '; font-family: ' + g.monoFamily + '; }\n' +
@@ -208,11 +208,9 @@ div#gameport {
   window.addEventListener('message', function(e) {
     if (!e.data) return;
     if (e.data.type === 'ifhub:applyTheme') {
-      document.body.classList.add('platform-theme-active');
       applyPlatformTheme(e.data.game, e.data.scrollbar);
     }
     if (e.data.type === 'ifhub:restoreOverlay') {
-      document.body.classList.remove('platform-theme-active');
       removePlatformTheme();
     }
   });
@@ -224,10 +222,7 @@ div#gameport {
     s.src = '/ifhub/themes.js';
     s.onload = function() {
       var t = getTheme(urlTheme);
-      if (t) {
-        document.body.classList.add('platform-theme-active');
-        applyPlatformTheme(t.game, t.scrollbar);
-      }
+      if (t) applyPlatformTheme(t.game, t.scrollbar);
     };
     document.head.appendChild(s);
   }

@@ -216,8 +216,11 @@ python /c/code/ifhub/tools/pipeline.py zork1
 # Compile + test
 python /c/code/ifhub/tools/pipeline.py zork1 compile test
 
-# Full pipeline
+# Full pipeline (local only)
 python /c/code/ifhub/tools/pipeline.py zork1 --all       # compile test push
+
+# Ship: compile + test + register + publish + push hub
+python /c/code/ifhub/tools/pipeline.py zork1 --ship
 
 # Resume after failure
 python /c/code/ifhub/tools/pipeline.py zork1 --continue
@@ -225,18 +228,21 @@ python /c/code/ifhub/tools/pipeline.py zork1 --continue
 # Other flags
 #   --force         Skip staleness checks
 #   --dry-run       Show what would happen
-#   --message "msg" Commit message for push stage
+#   --message "msg" Commit message for push/publish stage
 ```
 
 ### Pipeline Stages
 
 | Stage | What it does | Calls |
 |-------|-------------|-------|
-| **compile** | I7 → I6 → Glulx → Blorb(if sound) → web player | `compile.py` |
+| **compile** | I7 → I6 → Glulx → Blorb(if sound) → web player + pages | `compile.py` (auto-generates `index.html` + `source.html` if missing) |
 | **test** | Walkthrough + regtest + guide regen + sync to web root | `run_walkthrough.py`, `generate-guide.py`, `run_tests.py` |
-| **push** | Stage changes, show summary, prompt before commit/push | `git` |
+| **register** | Add to `games.json` + `cards.json` (idempotent, reads metadata from `story.ni`) | `register_game.py` |
+| **publish** | Push project to its own GitHub Pages repo | `publish.py` |
+| **push-hub** | Commit + push hub registry changes | `push_hub.py` |
+| **push** | Stage all ifhub changes, show summary, prompt before commit/push | `git` |
 
-Default with no stages = `compile` only. Stages are reordered to pipeline order automatically.
+Default with no stages = `compile` only. `--ship` = compile test register publish push-hub. Stages are reordered to pipeline order automatically.
 
 ### Project Capability Detection
 
@@ -392,7 +398,7 @@ python tools/register_game.py --name game-id --title "Title" --engine ink --tags
 
 Each game's `play.html` layers custom CSS on top of Parchment's base styles. Three tiers: Parchment base → static overlay (all projects) → dynamic mood system (zork1 v3, feverdream, seasons). The shared mood engine (`tools/web/parchment/mood-engine.js`) provides room detection, palette transitions, and hooks for game-specific effects. See `reference/css-overlay.md` for full authoring guide.
 
-**Platform theme override:** When a platform theme is selected in the hub's style dropdown, game `play.html` files receive `ifhub:applyTheme` via postMessage and inject override styles. Games with overlays add `body.platform-theme-active` to suppress visual effects while the mood engine continues running. The overlay can be restored at any time via `ifhub:restoreOverlay`. The `overlayLabel` field in `games.json` controls which games show an overlay option in the style dropdown.
+**Platform theme override:** When a platform theme is selected in the hub's style dropdown, `app.html` directly injects `<style id="ifhub-theme-override">` into all same-origin iframes (game, source, walkthrough) via `contentDocument`. Engine-specific CSS builders (`buildParchmentCSS`, `buildInkCSS`, `buildBasicCSS`, `buildChromeCSS`) target the correct selectors for each page type. Games with `overlayLabel` in `games.json` are exempt from direct injection — they receive `ifhub:applyTheme` / `ifhub:restoreOverlay` via postMessage so their own listener can coordinate `body.platform-theme-active` to suppress visual effects while the mood engine continues running. Non-overlay game `play.html` files do not need a theme listener script.
 
 **Adding mood theming to a new project:**
 1. Copy `tools/web/templates/play-mood.html` → `projects/<game>/play-template.html`
@@ -466,14 +472,25 @@ Games in these formats are already self-contained HTML — just create `play.htm
 
 ## New Game Publish Flow
 
-End-to-end steps from `story.ni` to a fully deployed game on IF Hub. See `reference/project-guide.md` for detailed instructions and command examples. Quick reference:
+End-to-end steps from `story.ni` to a fully deployed game on IF Hub. See `reference/project-guide.md` for detailed instructions and command examples.
+
+**Streamlined flow** (after writing the game):
+```bash
+python tools/new_project.py "Title" game-name    # scaffold
+# ... edit story.ni, create walkthrough ...
+python tools/pipeline.py game-name --ship         # compile + test + register + publish + push hub
+```
+
+`compile.py` auto-generates `index.html` + `source.html` from `story.ni` metadata when they don't exist. The `register` stage reads title/description from `story.ni` — no CLI args needed. All steps are idempotent.
+
+**Individual scripts** (still work standalone):
 
 | Step | Script | What it produces |
 |------|--------|-----------------|
 | Scaffold | `tools/new_project.py` | Project directory with source, tests, CI, CLAUDE.md |
-| Compile | `tools/compile.py` | `.ulx`, `play.html`, `walkthrough.html`, transcript, guide |
+| Compile | `tools/compile.py` | `.ulx`, `play.html`, `walkthrough.html`, `index.html`, `source.html`, transcript, guide |
 | Extract commands | `tools/extract_commands.py` | `walkthrough.txt` from transcript or source |
-| Generate pages | `tools/web/generate_pages.py` | `index.html`, `source.html` |
+| Generate pages | `tools/web/generate_pages.py` | `index.html`, `source.html` (manual override) |
 | Register | `tools/register_game.py` | `games.json` + `cards.json` entries |
 | Publish | `tools/publish.py` | GitHub repo + Pages deployment |
 | Push hub | `tools/push_hub.py` | Commits + pushes hub registry to GitHub |

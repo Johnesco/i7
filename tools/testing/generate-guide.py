@@ -16,96 +16,17 @@ import argparse
 import os
 import re
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from lib.transcript import (
+    NAV_WORDS,
+    detect_room_name,
+    has_sound_prompt,
+    parse_transcript,
+)
 
 GUIDE_MARKER = "# Auto-generated walkthrough guide"
-
-
-def parse_transcript(transcript_path):
-    """Parse a glulxe transcript into (preamble, responses) tuple.
-
-    The transcript format from CheapGlk is:
-        >Response to command
-        or
-        >
-        Room Name
-        Description...
-
-    Returns (preamble_text, [response strings]).
-    The preamble is the text before the first > prompt (banner, sound prompt, etc.).
-    Each response corresponds to one > prompt in the transcript.
-    """
-    with open(transcript_path, encoding="utf-8", errors="replace") as f:
-        text = f.read()
-
-    # Split on > prompts. The first chunk is the banner/preamble.
-    # Each subsequent chunk is the response to one command.
-    parts = re.split(r"^>", text, flags=re.MULTILINE)
-
-    preamble = parts[0] if parts else ""
-    responses = [part.strip() for part in parts[1:]]
-
-    return preamble, responses
-
-
-def has_sound_prompt(preamble):
-    """Detect if the game preamble contains a sound prompt.
-
-    Games with sound ask "Do you want sound? (y/n)" before the main game loop.
-    This consumes the first walkthrough command without producing a > prompt,
-    so the responses are offset by one from the commands.
-    """
-    return bool(re.search(r"Do you want sound|Sound disabled|Sound enabled",
-                          preamble, re.IGNORECASE))
-
-
-def detect_room_name(response):
-    """Try to detect a room name from a response.
-
-    Room names in Inform 7 transcripts appear as the first line of a
-    movement response -- a short title line followed by a longer description.
-    Heuristic: first line is short (<60 chars), starts with uppercase,
-    doesn't start with common response words.
-    """
-    lines = response.split("\n")
-    if not lines:
-        return None
-
-    first_line = lines[0].strip()
-
-    # Skip empty, or lines that are clearly responses not room names
-    if not first_line:
-        # Room name might be on next non-empty line
-        for line in lines:
-            line = line.strip()
-            if line:
-                first_line = line
-                break
-        if not first_line:
-            return None
-
-    # Response patterns that are NOT room names
-    non_room = [
-        "Taken", "Dropped", "You ", "The ", "That", "It ", "I ", "With ",
-        "There ", "Your ", "A ", "An ", "[", "Ok", "Nothing", "But ",
-        "What ", "Which ", "How ", "Opening", "Closing", "Putting",
-        "Sound ", "Welcome", "Do you",
-    ]
-    for prefix in non_room:
-        if first_line.startswith(prefix):
-            return None
-
-    # Room names are typically short, title-case-ish
-    if len(first_line) > 60:
-        return None
-    if not first_line[0].isupper():
-        return None
-
-    # Must have at least one more line (the description) to be a room entry
-    non_empty_lines = [l for l in lines if l.strip()]
-    if len(non_empty_lines) < 2:
-        return None
-
-    return first_line
 
 
 WORD_TO_NUM = {
@@ -207,12 +128,6 @@ def detect_npc_interaction(command):
 
 
 COMBAT_VERBS = {"kill", "attack", "hit", "fight", "strike"}
-
-NAV_WORDS = {
-    "n", "s", "e", "w", "ne", "nw", "se", "sw", "u", "d",
-    "north", "south", "east", "west", "northeast", "northwest",
-    "southeast", "southwest", "up", "down", "in", "out",
-}
 
 # ---------------------------------------------------------------------------
 # Response excerpt filtering

@@ -181,10 +181,7 @@ continueStory();
     s.src = '/ifhub/themes.js';
     s.onload = function() {
       var t = getTheme(urlTheme);
-      if (t) {
-        document.body.classList.add('platform-theme-active');
-        applyPlatformTheme(t.game, t.scrollbar);
-      }
+      if (t) applyPlatformTheme(t.game, t.scrollbar);
     };
     document.head.appendChild(s);
   }

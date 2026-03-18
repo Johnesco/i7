@@ -1,120 +1,124 @@
+<!--
+  play-template.html — Conway's Game of Life (Matrix-themed)
+
+  Tokens: TITLE, STORY_FILE, STORY_PATH, LIB_PATH
+  Engine: Parchment 2025.1 (Quixe for Glulx)
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Interactive Fiction</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="lib/parchment/parchment.css">
-<link rel="stylesheet" href="lib/parchment/main.css">
+<title>__TITLE__</title>
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<link rel="stylesheet" href="__LIB_PATH__parchment.css">
+<link rel="stylesheet" href="__LIB_PATH__main.css">
 
 <style>
 :root {
-  /* ── AsyncGlk / GlkOte base theme ── */
-  --glkote-buffer-bg: #111;
-  --glkote-buffer-fg: #d4c5a9;
-  --glkote-buffer-reverse-bg: #d4c5a9;
-  --glkote-buffer-reverse-fg: #111;
-  --glkote-buffer-size: 16px;
-  --glkote-buffer-line-height: 1.6;
-  --glkote-grid-bg: #1c1810;
-  --glkote-grid-fg: #aa9966;
-  --glkote-grid-reverse-bg: #aa9966;
-  --glkote-grid-reverse-fg: #1c1810;
-  --glkote-grid-size: 14px;
-  --glkote-input-fg: #e8d090;
-  --glkote-error-border: #882020;
-  --glkote-warning-border: #3333aa;
-  --glkote-prop-family: "Iowan Old Style", Palatino, Georgia, "Times New Roman", serif;
+  --glkote-buffer-bg: #000000;
+  --glkote-buffer-fg: #00cc00;
+  --glkote-buffer-reverse-bg: #00cc00;
+  --glkote-buffer-reverse-fg: #000000;
+  --glkote-buffer-size: 14px;
+  --glkote-buffer-line-height: 1.5;
+  --glkote-grid-bg: #000000;
+  --glkote-grid-fg: #00ff00;
+  --glkote-grid-reverse-bg: #00ff00;
+  --glkote-grid-reverse-fg: #000000;
+  --glkote-grid-size: 16px;
+  --glkote-input-fg: #00ff00;
+  --glkote-error-border: #ff0000;
+  --glkote-warning-border: #ffff00;
+  --glkote-prop-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, "Courier New", monospace;
   --glkote-mono-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, "Courier New", monospace;
   --glkote-grid-mono-family: var(--glkote-mono-family);
 
-  --asyncglk-ui-bg: #1a1810;
-  --asyncglk-ui-border: #3a2a10;
-  --asyncglk-ui-fg: #d4c5a9;
-  --asyncglk-ui-selected: #2a2010;
-  --asyncglk-ui-textbox: #111;
+  --asyncglk-ui-bg: #000000;
+  --asyncglk-ui-border: #003300;
+  --asyncglk-ui-fg: #00cc00;
+  --asyncglk-ui-selected: #003300;
+  --asyncglk-ui-textbox: #000000;
 }
 
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #0a0a0a;
+  background: #000000;
   overflow: hidden;
 }
 
 div#gameport {
   position: absolute;
   inset: 0;
-  background: #111;
+  background: #000000;
 }
 
 .WindowFrame {
-  background: #111;
+  background: #000000;
 }
 
+/* Grid window — the main simulation display */
 .GridWindow {
-  background-color: #1c1810;
-  color: #aa9966;
-  padding: 6px 12px;
+  padding: 4px 8px;
+  font-size: 16px !important;
+  line-height: 1.25 !important;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #003300;
 }
 
-.BufferWindow {
-  background-color: #111;
-  color: #d4c5a9;
-  scrollbar-width: thin;
-  scrollbar-color: #3a3020 transparent;
+/* Cursor highlight (User1 = reverse video) */
+.GridWindow .Style_user1 {
+  color: #000000 !important;
+  background-color: #00ff00 !important;
 }
 
+/* Buffer window — instructions */
 .BufferWindowInner {
   padding: 20px 40px;
-  text-rendering: optimizeLegibility;
 }
 
-.Input {
-  font-weight: bold;
-  color: #e8d090;
-  caret-color: #e8d090;
-  caret-shape: underscore;
+/* Style input to blend in — must remain focusable for char events */
+.BufferWindow .Input,
+.BufferWindow textarea.Input {
+  color: #00cc00;
+  caret-color: #00cc00;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, "Courier New", monospace;
 }
 
-.Style_user1 { display: none; }
+/* Hide room description style noise */
+.BufferWindow .Style_user1 { display: none; }
 
 .Style_header {
-  color: #e8d8b0;
-  text-shadow: 0 0 8px rgba(232,216,176,0.15);
+  color: #00ff88;
 }
 
 .Style_alert {
-  color: #cc8844;
-  text-shadow: 0 0 6px rgba(204,136,68,0.12);
+  color: #ffcc00;
 }
 
 .Style_note {
-  color: #aa9966;
+  color: #008800;
 }
 
-/* ── Scrollbar polish ── */
-.BufferWindow::-webkit-scrollbar { width: 6px; }
-.BufferWindow::-webkit-scrollbar-track { background: transparent; }
-.BufferWindow::-webkit-scrollbar-thumb { background: #3a3020; border-radius: 3px; }
-.BufferWindow::-webkit-scrollbar-thumb:hover { background: #5a4a30; }
+/* Scrollbar */
+.BufferWindow::-webkit-scrollbar { width: 8px; }
+.BufferWindow::-webkit-scrollbar-track { background: #001100; }
+.BufferWindow::-webkit-scrollbar-thumb { background: #003300; border-radius: 4px; }
+.BufferWindow::-webkit-scrollbar-thumb:hover { background: #005500; }
 
-/* ── Text fade-in ── */
-@keyframes bufferFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.BufferLine { animation: bufferFadeIn 0.3s ease-out; }
-
+/* Loading pane */
 #loadingpane {
   position: absolute;
   width: 100%;
   text-align: center;
   top: 35%;
-  color: #887755;
+  color: #00aa00;
   font-size: 1.2em;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "SF Mono", Consolas, "Courier New", monospace;
 }
 
 @keyframes pulse {
@@ -125,34 +129,21 @@ div#gameport {
 #loadingpane em {
   animation: pulse 1.5s ease-in-out infinite;
 }
-
 </style>
-<script src="themes.js"></script>
-<script>initTheme('game');</script>
 
-<script src="lib/parchment/jquery.min.js"></script>
+<script src="__LIB_PATH__jquery.min.js"></script>
+<script src="__LIB_PATH__ie.js" nomodule></script>
 <script>
-    var params = new URLSearchParams(window.location.search);
-    var binaryPath = params.get('binary');
-    var gameTitle = params.get('title') || 'Interactive Fiction';
-
-    document.title = gameTitle;
-
-    if (binaryPath) {
-        // story_name is REQUIRED — parchment.js calls .substring() on it to detect
-        // the file type (.ulx.js, .gblorb.js, .z3.js). Without it you get:
-        //   TypeError: Cannot read properties of undefined (reading 'substring')
-        parchment_options = {
-            default_story: [binaryPath],
-            lib_path: 'lib/parchment/',
-            story_name: binaryPath.split('/').pop(),
-            use_proxy: 0,
-            do_vm_autosave: 1,
-        };
-    }
+    parchment_options = {
+        default_story: ['__STORY_PATH__'],
+        lib_path: '__LIB_PATH__',
+        story_name: '__STORY_FILE__',
+        use_proxy: 0,
+        do_vm_autosave: 0,
+    };
 </script>
-<script src="lib/parchment/parchment.js"></script>
-<script src="lib/parchment/resourcemap.js"></script>
+<script src="__LIB_PATH__parchment.js"></script>
+<script src="__LIB_PATH__resourcemap.js"></script>
 <script>
     window.addEventListener('pageshow', function(e) {
         if (e.persisted) { window.location.reload(); }
@@ -165,15 +156,16 @@ div#gameport {
 <div id="gameport">
   <div id="windowport">
     <noscript>
-      <div style="text-align:center; padding:40px; color:#aa6644;">
-        <h2>Interactive Fiction</h2>
-        <p>JavaScript is required to play this game.</p>
+      <div style="text-align:center; padding:40px; color:#00aa00;">
+        <h2>__TITLE__</h2>
+        <p>JavaScript is required to run this simulation.</p>
       </div>
     </noscript>
   </div>
   <div id="loadingpane">
-    <div id="loading-title" style="margin-bottom:20px; font-size:1.4em; color:#aa9966; letter-spacing:4px;"></div>
-    <em>Loading...</em>
+    <div style="margin-bottom:20px; font-size:1.4em; color:#00ff00; letter-spacing:4px;">__TITLE__</div>
+    <img src="__LIB_PATH__waiting.gif" alt="Loading" style="opacity:0.5"><br>
+    <em>Initializing simulation...</em>
   </div>
   <div id="errorpane" style="display:none;">
     <div id="errorcontent">...</div>
@@ -181,11 +173,7 @@ div#gameport {
 </div>
 
 <script>
-  document.getElementById('loading-title').textContent = gameTitle;
-</script>
-
-<script>
-/* Theme listener for hub iframe embedding */
+/* ── IF Hub theme listener ── */
 (function() {
   function ensureRetroFonts() {
     if (document.getElementById('retro-platform-fonts')) return;
@@ -237,11 +225,9 @@ div#gameport {
   window.addEventListener('message', function(e) {
     if (!e.data) return;
     if (e.data.type === 'ifhub:applyTheme') {
-      document.body.classList.add('platform-theme-active');
       applyPlatformTheme(e.data.game, e.data.scrollbar);
     }
     if (e.data.type === 'ifhub:restoreOverlay') {
-      document.body.classList.remove('platform-theme-active');
       removePlatformTheme();
     }
   });
@@ -253,10 +239,7 @@ div#gameport {
     s.src = '/ifhub/themes.js';
     s.onload = function() {
       var t = getTheme(urlTheme);
-      if (t) {
-        document.body.classList.add('platform-theme-active');
-        applyPlatformTheme(t.game, t.scrollbar);
-      }
+      if (t) applyPlatformTheme(t.game, t.scrollbar);
     };
     document.head.appendChild(s);
   }

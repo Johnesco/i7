@@ -1,15 +1,20 @@
+<!-- Template tokens (substituted by setup_web.py and compile.py):
+     Guess the Verb      — Game title (from story.ni or games.json)
+     guess_the_verb.ulx.js — Binary filename, e.g. "game.ulx.js?v=1773811504" or "game.gblorb.js?v=1773811504"
+     lib/parchment/guess_the_verb.ulx.js — Full path to binary, e.g. "lib/parchment/game.ulx.js?v=1773811504"
+     lib/parchment/   — Parchment library path, e.g. "lib/parchment/" or "../../lib/parchment/"
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Interactive Fiction</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="lib/parchment/parchment.css">
-<link rel="stylesheet" href="lib/parchment/main.css">
+<title>Guess the Verb</title>
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<link rel="stylesheet" href="lib/parchment/parchment.css?v=1773811504">
+<link rel="stylesheet" href="lib/parchment/main.css?v=1773811504">
 
 <style>
 :root {
-  /* ── AsyncGlk / GlkOte base theme ── */
   --glkote-buffer-bg: #111;
   --glkote-buffer-fg: #d4c5a9;
   --glkote-buffer-reverse-bg: #d4c5a9;
@@ -54,58 +59,38 @@ div#gameport {
 }
 
 .GridWindow {
-  background-color: #1c1810;
-  color: #aa9966;
+  border-bottom: 1px solid #2a2418;
   padding: 6px 12px;
-}
-
-.BufferWindow {
-  background-color: #111;
-  color: #d4c5a9;
-  scrollbar-width: thin;
-  scrollbar-color: #3a3020 transparent;
 }
 
 .BufferWindowInner {
   padding: 20px 40px;
-  text-rendering: optimizeLegibility;
 }
 
 .Input {
   font-weight: bold;
   color: #e8d090;
   caret-color: #e8d090;
-  caret-shape: underscore;
 }
 
 .Style_user1 { display: none; }
 
 .Style_header {
   color: #e8d8b0;
-  text-shadow: 0 0 8px rgba(232,216,176,0.15);
 }
 
 .Style_alert {
   color: #cc8844;
-  text-shadow: 0 0 6px rgba(204,136,68,0.12);
 }
 
 .Style_note {
   color: #aa9966;
 }
 
-/* ── Scrollbar polish ── */
-.BufferWindow::-webkit-scrollbar { width: 6px; }
-.BufferWindow::-webkit-scrollbar-track { background: transparent; }
-.BufferWindow::-webkit-scrollbar-thumb { background: #3a3020; border-radius: 3px; }
+.BufferWindow::-webkit-scrollbar { width: 8px; }
+.BufferWindow::-webkit-scrollbar-track { background: #1a1a1a; }
+.BufferWindow::-webkit-scrollbar-thumb { background: #3a3020; border-radius: 4px; }
 .BufferWindow::-webkit-scrollbar-thumb:hover { background: #5a4a30; }
-
-/* ── Text fade-in ── */
-@keyframes bufferFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.BufferLine { animation: bufferFadeIn 0.3s ease-out; }
 
 #loadingpane {
   position: absolute;
@@ -125,34 +110,24 @@ div#gameport {
 #loadingpane em {
   animation: pulse 1.5s ease-in-out infinite;
 }
-
 </style>
-<script src="themes.js"></script>
-<script>initTheme('game');</script>
 
-<script src="lib/parchment/jquery.min.js"></script>
+<script src="lib/parchment/jquery.min.js?v=1773811504"></script>
+<script src="lib/parchment/ie.js?v=1773811504" nomodule></script>
 <script>
-    var params = new URLSearchParams(window.location.search);
-    var binaryPath = params.get('binary');
-    var gameTitle = params.get('title') || 'Interactive Fiction';
-
-    document.title = gameTitle;
-
-    if (binaryPath) {
-        // story_name is REQUIRED — parchment.js calls .substring() on it to detect
-        // the file type (.ulx.js, .gblorb.js, .z3.js). Without it you get:
-        //   TypeError: Cannot read properties of undefined (reading 'substring')
-        parchment_options = {
-            default_story: [binaryPath],
-            lib_path: 'lib/parchment/',
-            story_name: binaryPath.split('/').pop(),
-            use_proxy: 0,
-            do_vm_autosave: 1,
-        };
-    }
+    // story_name is REQUIRED — parchment.js calls .substring() on it to detect
+    // the file type (.ulx.js, .gblorb.js, .z3.js). Without it you get:
+    //   TypeError: Cannot read properties of undefined (reading 'substring')
+    parchment_options = {
+        default_story: ['lib/parchment/guess_the_verb.ulx.js'],
+        lib_path: 'lib/parchment/',
+        story_name: 'guess_the_verb.ulx.js',
+        use_proxy: 0,
+        do_vm_autosave: 1,
+    };
 </script>
-<script src="lib/parchment/parchment.js"></script>
-<script src="lib/parchment/resourcemap.js"></script>
+<script src="lib/parchment/parchment.js?v=1773811504"></script>
+<script src="lib/parchment/resourcemap.js?v=1773811504"></script>
 <script>
     window.addEventListener('pageshow', function(e) {
         if (e.persisted) { window.location.reload(); }
@@ -166,13 +141,14 @@ div#gameport {
   <div id="windowport">
     <noscript>
       <div style="text-align:center; padding:40px; color:#aa6644;">
-        <h2>Interactive Fiction</h2>
+        <h2>Guess the Verb</h2>
         <p>JavaScript is required to play this game.</p>
       </div>
     </noscript>
   </div>
   <div id="loadingpane">
-    <div id="loading-title" style="margin-bottom:20px; font-size:1.4em; color:#aa9966; letter-spacing:4px;"></div>
+    <div style="margin-bottom:20px; font-size:1.4em; color:#aa9966; letter-spacing:4px;">Guess the Verb</div>
+    <img src="lib/parchment/waiting.gif" alt="Loading" style="opacity:0.5"><br>
     <em>Loading...</em>
   </div>
   <div id="errorpane" style="display:none;">
@@ -181,11 +157,7 @@ div#gameport {
 </div>
 
 <script>
-  document.getElementById('loading-title').textContent = gameTitle;
-</script>
-
-<script>
-/* Theme listener for hub iframe embedding */
+/* ── IF Hub theme listener ── */
 (function() {
   function ensureRetroFonts() {
     if (document.getElementById('retro-platform-fonts')) return;
@@ -237,11 +209,9 @@ div#gameport {
   window.addEventListener('message', function(e) {
     if (!e.data) return;
     if (e.data.type === 'ifhub:applyTheme') {
-      document.body.classList.add('platform-theme-active');
       applyPlatformTheme(e.data.game, e.data.scrollbar);
     }
     if (e.data.type === 'ifhub:restoreOverlay') {
-      document.body.classList.remove('platform-theme-active');
       removePlatformTheme();
     }
   });
@@ -253,10 +223,7 @@ div#gameport {
     s.src = '/ifhub/themes.js';
     s.onload = function() {
       var t = getTheme(urlTheme);
-      if (t) {
-        document.body.classList.add('platform-theme-active');
-        applyPlatformTheme(t.game, t.scrollbar);
-      }
+      if (t) applyPlatformTheme(t.game, t.scrollbar);
     };
     document.head.appendChild(s);
   }

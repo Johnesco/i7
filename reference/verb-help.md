@@ -147,6 +147,48 @@ The template adds no new rooms, objects, or scoring. Existing walkthroughs conti
 
 Remove the Chapter from `story.ni` and verify the game still compiles. The template introduces no dependencies that leak into other code.
 
+## Clarification Messages
+
+When a custom action redirects to a conceptually different standard action (ring→push, climb stairs→go up), add a parenthesized clarification message so the player learns what the parser actually did. This matches I7's built-in "(first taking X)" convention.
+
+### Pattern
+
+```inform7
+Instead of climbing the narrow staircase:
+	say "(going up)[command clarification break]";
+	try going up.
+```
+
+Output:
+```
+>climb stairs
+(going up)
+Attic
+A cramped attic under sloping eaves...
+```
+
+### When to Use
+
+| Redirect type | Example | Add message? |
+|---|---|---|
+| Custom action → different standard action | ring→push, climb→go up, look behind→push | **Yes** |
+| Implicit noun resolution | bare `dig` → `dig flower bed` | **Yes** |
+| Target redirection | `burn matchbook` → `burn fireplace` | **Yes** |
+| Template synonyms | grab→take, inspect→examine | **No** |
+| Near-synonyms | kindle→burn, rummage→search | **No** |
+| Internal simplification | wind X with Y → wind X | **No** |
+
+### Formatting Rules
+
+- Use lowercase, parenthesized, action-oriented phrasing: `(pressing the doorbell)`
+- Do NOT expose parser internals: ~~(understood as: pushing the brass doorbell)~~
+- Always use `[command clarification break]` — it produces the standard line break that I7 uses for "(first taking X)"
+- For noun references, use `[the noun]` to get the article: `(pressing [the noun])`
+
+### Tested In
+
+Piloted on `projects/guess_the_verb/` with 7 redirect points. See `FINDINGS.md` for the full analysis.
+
 ## Design Decisions
 
 **Why a source template, not an Extension?** Extensions require installation into the Extensions directory and have specific formatting requirements. A source template pasted into `story.ni` is simpler, visible in the source browser, and avoids Windows extension-path issues.

@@ -10,6 +10,7 @@ Matches the IF Hub dark-gold theme.
 """
 
 import glob as _glob_mod
+import hashlib
 import json
 import os
 import re
@@ -86,6 +87,16 @@ class ProjectInfo:
     has_source_html: bool = False
     has_git: bool = False
     registered: bool = False
+    # Pipeline state enrichment
+    pipeline_state: dict = field(default_factory=dict)
+    binary_name: str = ""
+    binary_size: int = 0
+    binary_mtime: float = 0
+    source_mtime: float = 0
+    compile_stale: bool = True
+    test_stale: bool = True
+    failed_stage: str = ""
+    stage_status: dict = field(default_factory=dict)
 
 
 def load_registered_ids():
@@ -149,6 +160,126 @@ def load_projects():
             # For non-I7: play.html IS the compiled output, or look for .js bundles
             has_binary = has_play
 
+        has_index = os.path.isfile(os.path.join(project_dir, "index.html"))
+        has_source_html = os.path.isfile(os.path.join(project_dir, "source.html"))
+        has_git = os.path.isdir(os.path.join(project_dir, ".git"))
+        is_registered = (name in registered_ids
+                         or fields.get("PIPELINE_HUB_ID", "") in registered_ids
+                         or any(rid.startswith(name) for rid in registered_ids))
+
+        # --- Pipeline state enrichment ---
+        state_file = os.path.join(project_dir, ".pipeline-state")
+        pipeline_state = {}
+        try:
+            if os.path.isfile(state_file):
+                with open(state_file, "r", encoding="utf-8") as f:
+                    pipeline_state = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+        # Source mtime
+        source_mt = 0.0
+        if has_source and source_path:
+            try:
+                source_mt = os.path.getmtime(source_path)
+            except OSError:
+                pass
+
+        # Find binary file for details
+        binary_name_str = ""
+        binary_sz = 0
+        binary_mt = 0.0
+        if engine == "inform7":
+            for fname in dir_files:
+                if fname.endswith((".gblorb", ".ulx")):
+                    bp = os.path.join(project_dir, fname)
+                    if os.path.isfile(bp):
+                        binary_name_str = fname
+                        try:
+                            binary_sz = os.path.getsize(bp)
+                            binary_mt = os.path.getmtime(bp)
+                        except OSError:
+                            pass
+                        break
+        elif has_play:
+            binary_name_str = "play.html"
+            bp = os.path.join(project_dir, "play.html")
+            try:
+                binary_sz = os.path.getsize(bp)
+                binary_mt = os.path.getmtime(bp)
+            except OSError:
+                pass
+
+        # Staleness: compare current hashes to pipeline state
+        compile_stale = True
+        if has_source and source_path:
+            try:
+                cur_hash = hashlib.md5(open(source_path, "rb").read()).hexdigest()
+                saved = pipeline_state.get("STAGE_COMPILE_SOURCE_HASH", "")
+                if saved and saved == cur_hash:
+                    compile_stale = False
+            except OSError:
+                pass
+
+        test_stale = True
+        if binary_name_str:
+            bp = os.path.join(project_dir, binary_name_str)
+            try:
+                cur_hash = hashlib.md5(open(bp, "rb").read()).hexdigest()
+                saved = pipeline_state.get("STAGE_TEST_BINARY_HASH", "")
+                if saved and saved == cur_hash:
+                    test_stale = False
+            except OSError:
+                pass
+
+        failed_stage = pipeline_state.get("STAGE_FAILED", "")
+
+        # Derive per-stage status
+        engine_spec = _libconfig.get_engine_spec(engine)
+        has_cli_tests = engine_spec.has_cli_tests if engine_spec else False
+        is_buildable = engine in ("inform7", "wwwbasic", "qbjc", "applesoft",
+                                  "bwbasic", "basic", "ink", "jsdos")
+
+        stage_status = {}
+
+        # Build status
+        if not is_buildable:
+            stage_status["build"] = "n/a"
+        elif failed_stage == "compile":
+            stage_status["build"] = "failed"
+        elif not pipeline_state.get("STAGE_COMPILE_SOURCE_HASH"):
+            stage_status["build"] = "not-run"
+        elif compile_stale:
+            stage_status["build"] = "stale"
+        else:
+            stage_status["build"] = "done"
+
+        # Test status
+        if not has_cli_tests or not (has_walkthrough or has_regtest):
+            stage_status["test"] = "n/a"
+        elif failed_stage == "test":
+            stage_status["test"] = "failed"
+        elif not has_binary:
+            stage_status["test"] = "blocked"
+        elif not pipeline_state.get("STAGE_TEST_BINARY_HASH"):
+            stage_status["test"] = "not-run"
+        elif test_stale:
+            stage_status["test"] = "stale"
+        else:
+            stage_status["test"] = "done"
+
+        # Package status
+        if has_index and has_source_html:
+            stage_status["package"] = "done"
+        else:
+            stage_status["package"] = "not-run"
+
+        # Register status
+        stage_status["register"] = "done" if is_registered else "not-run"
+
+        # Publish status
+        stage_status["publish"] = "done" if has_git else "not-run"
+
         projects.append(
             ProjectInfo(
                 name=name,
@@ -163,12 +294,19 @@ def load_projects():
                 has_test_me=has_test_me,
                 has_play_html=has_play,
                 has_binary=has_binary,
-                has_index=os.path.isfile(os.path.join(project_dir, "index.html")),
-                has_source_html=os.path.isfile(os.path.join(project_dir, "source.html")),
-                has_git=os.path.isdir(os.path.join(project_dir, ".git")),
-                registered=name in registered_ids
-                    or fields.get("PIPELINE_HUB_ID", "") in registered_ids
-                    or any(rid.startswith(name) for rid in registered_ids),
+                has_index=has_index,
+                has_source_html=has_source_html,
+                has_git=has_git,
+                registered=is_registered,
+                pipeline_state=pipeline_state,
+                binary_name=binary_name_str,
+                binary_size=binary_sz,
+                binary_mtime=binary_mt,
+                source_mtime=source_mt,
+                compile_stale=compile_stale,
+                test_stale=test_stale,
+                failed_stage=failed_stage,
+                stage_status=stage_status,
             )
         )
     return projects
@@ -471,6 +609,14 @@ def api_projects():
                 "hasSourceHtml": p.has_source_html,
                 "hasGit": p.has_git,
                 "registered": p.registered,
+                "binaryName": p.binary_name,
+                "binarySize": p.binary_size,
+                "binaryMtime": p.binary_mtime,
+                "sourceMtime": p.source_mtime,
+                "compileStale": p.compile_stale,
+                "testStale": p.test_stale,
+                "failedStage": p.failed_stage,
+                "stageStatus": p.stage_status,
             }
             for p in projects
         ]
@@ -906,12 +1052,22 @@ button.primary:hover:not(:disabled) {
 
 .step {
   border: 1px solid var(--border);
+  border-left: 3px solid var(--text-dim);
   border-radius: 4px;
   padding: 10px 14px;
-  margin-bottom: 6px;
+  margin-bottom: 0;
 }
 
 .step-off { opacity: 0.35; }
+
+.step-border-done { border-left-color: var(--green); }
+.step-border-stale { border-left-color: var(--yellow); }
+.step-border-failed { border-left-color: var(--red); }
+.step-border-blocked { border-left-color: var(--red); opacity: 0.6; }
+.step-border-notrun { border-left-color: var(--text-dim); }
+.step-border-na { border-left-color: var(--border); }
+
+.step-force-active { border-color: var(--yellow); border-left-color: var(--yellow); }
 
 .step-head {
   display: flex;
@@ -939,6 +1095,41 @@ button.primary:hover:not(:disabled) {
   margin-top: 1px;
 }
 
+.step-artifact {
+  color: var(--text-muted);
+  font-size: 0.76em;
+  margin-top: 4px;
+}
+
+.step-artifact-warn {
+  color: var(--yellow);
+  font-size: 0.76em;
+  margin-top: 4px;
+}
+
+.step-skip-hint {
+  color: var(--text-dim);
+  font-size: 0.74em;
+  font-style: italic;
+  margin-top: 3px;
+}
+
+.badge {
+  font-size: 0.72em;
+  font-weight: bold;
+  padding: 1px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.badge-done { background: var(--green); color: #111; }
+.badge-stale { background: var(--yellow); color: #111; }
+.badge-failed { background: var(--red); color: #fff; }
+.badge-notrun { background: var(--border-accent); color: var(--text-dim); }
+.badge-na { background: var(--border); color: var(--text-dim); }
+.badge-blocked { background: #522; color: #c88; }
+
 .step-status {
   font-size: 0.78em;
   white-space: nowrap;
@@ -949,18 +1140,53 @@ button.primary:hover:not(:disabled) {
 .ck { color: var(--green); }
 .xk { color: var(--text-dim); }
 
+.step-connector {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.7em;
+  line-height: 1;
+  margin: 2px 0;
+}
+
+.step-connector-done { color: var(--green); }
+
 .step-btns {
   display: flex;
   gap: 6px;
   margin-top: 8px;
   padding-left: 26px;
+  align-items: center;
 }
+
+.step-btns-spacer { flex: 1; }
+
+.force-label {
+  font-size: 0.76em;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.force-label input { cursor: pointer; }
 
 .btn-chain {
   font-size: 0.82em;
   color: var(--text-muted);
   border-style: dashed;
 }
+
+.force-all-link {
+  font-size: 0.78em;
+  color: var(--text-dim);
+  cursor: pointer;
+  text-decoration: underline;
+  margin-bottom: 6px;
+  display: inline-block;
+}
+
+.force-all-link:hover { color: var(--text-muted); }
 
 /* --- New Game --- */
 
@@ -1104,15 +1330,12 @@ The Foyer is a room. "You stand in a grand foyer."'></textarea>
           <input id="f-sound" type="checkbox">
           <span>Sound (blorb)</span>
         </div>
-        <div class="form-check">
-          <input id="f-force" type="checkbox">
-          <span>Force overwrite generated files</span>
-        </div>
       </details>
     </section>
 
     <section>
       <h3>Pipeline</h3>
+      <span class="force-all-link" onclick="toggleForceAll()">Force all steps</span>
       <div id="steps"></div>
     </section>
 
@@ -1167,7 +1390,7 @@ const STEPS = [
           : p.engine === 'jsdos'
             ? 'Generate web player from .jsdos bundle'
             : 'Compile source',
-    status: p => [
+    checks: p => [
       { ok: p.hasBinary, t: p.hasBinary ? 'binary' : 'no binary' },
       { ok: p.hasPlayHtml, t: p.hasPlayHtml ? 'play.html' : 'no play.html' },
     ],
@@ -1176,7 +1399,7 @@ const STEPS = [
   {
     id: 'test', name: 'Test',
     desc: () => 'Run walkthrough + regression tests',
-    status: p => {
+    checks: p => {
       const s = [];
       if (p.hasWalkthrough) s.push({ ok: true, t: 'walkthrough' });
       if (p.hasRegtest) s.push({ ok: true, t: 'regtest' });
@@ -1188,7 +1411,7 @@ const STEPS = [
   {
     id: 'package', name: 'Package',
     desc: () => 'Generate landing page + source browser',
-    status: p => [
+    checks: p => [
       { ok: p.hasIndex, t: p.hasIndex ? 'index.html' : 'no index.html' },
       { ok: p.hasSourceHtml, t: p.hasSourceHtml ? 'source.html' : 'no source.html' },
     ],
@@ -1197,7 +1420,7 @@ const STEPS = [
   {
     id: 'register', name: 'Register',
     desc: () => 'Add to IF Hub registry + push changes',
-    status: p => [
+    checks: p => [
       { ok: p.registered, t: p.registered ? 'registered' : 'not registered' },
     ],
     enabled: () => true,
@@ -1205,7 +1428,7 @@ const STEPS = [
   {
     id: 'publish', name: 'Publish',
     desc: p => p.hasGit ? 'Push changes to GitHub Pages' : 'Create GitHub repo + enable Pages',
-    status: p => [
+    checks: p => [
       { ok: p.hasGit, t: p.hasGit ? 'git repo' : 'no repo' },
     ],
     enabled: () => true,
@@ -1246,19 +1469,78 @@ function renderList() {
   });
 }
 
+function fmtSize(bytes) {
+  if (bytes <= 0) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function fmtRelTime(epoch) {
+  if (!epoch) return '';
+  const diff = (Date.now() / 1000) - epoch;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  if (diff < 172800) return 'yesterday';
+  const d = new Date(epoch * 1000);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+const BADGE_MAP = {
+  'done':    { label: 'DONE',    cls: 'badge-done' },
+  'stale':   { label: 'STALE',   cls: 'badge-stale' },
+  'failed':  { label: 'FAILED',  cls: 'badge-failed' },
+  'not-run': { label: '\u2014',  cls: 'badge-notrun' },
+  'n/a':     { label: 'N/A',     cls: 'badge-na' },
+  'blocked': { label: 'BLOCKED', cls: 'badge-blocked' },
+};
+
 function renderSteps(p) {
   const el = document.getElementById('steps');
   el.innerHTML = '';
+  const ss = p.stageStatus || {};
+
   STEPS.forEach((s, i) => {
     const on = s.enabled(p);
-    const st = s.status(p);
+    const checks = s.checks(p);
     const isLast = i === STEPS.length - 1;
+    const status = ss[s.id] || 'not-run';
+    const badge = BADGE_MAP[status] || BADGE_MAP['not-run'];
 
-    const statusHtml = st.map(x =>
+    // Connector between cards
+    if (i > 0) {
+      const prevStatus = ss[STEPS[i - 1].id] || 'not-run';
+      const conn = document.createElement('div');
+      conn.className = 'step-connector' + (prevStatus === 'done' ? ' step-connector-done' : '');
+      conn.textContent = '\u25BC';
+      el.appendChild(conn);
+    }
+
+    // Check indicators
+    const checksHtml = checks.map(x =>
       '<span class="' + (x.ok ? 'ck' : 'xk') + '">' +
       (x.ok ? '\u2713 ' : '\u2717 ') + x.t + '</span>'
     ).join(' <span class="step-sep">\u00b7</span> ');
 
+    // Artifact detail line
+    let artifactHtml = '';
+    if (s.id === 'build' && p.binaryName && p.binarySize) {
+      artifactHtml = '<div class="step-artifact">' +
+        p.binaryName + ' \u00b7 ' + fmtSize(p.binarySize) +
+        ' \u00b7 compiled ' + fmtRelTime(p.binaryMtime) + '</div>';
+    }
+    if (s.id === 'test' && status !== 'n/a' && p.testStale && p.hasBinary) {
+      artifactHtml = '<div class="step-artifact-warn">\u26A0 Binary changed since last test</div>';
+    }
+
+    // Skip hint
+    let skipHtml = '';
+    if (status === 'done') {
+      skipHtml = '<div class="step-skip-hint">Will skip (unchanged)</div>';
+    }
+
+    // Buttons
     let btns = '<button ' + (on ? '' : 'disabled ') +
       'onclick="runStep(\'' + s.id + '\')">' + s.name + '</button>';
     if (!isLast) {
@@ -1267,20 +1549,56 @@ function renderSteps(p) {
         s.name + ' \u2192 Publish</button>';
     }
 
+    // Per-step force checkbox (only for done/stale)
+    let forceHtml = '';
+    if (status === 'done' || status === 'stale') {
+      forceHtml = '<span class="step-btns-spacer"></span>' +
+        '<label class="force-label">' +
+        '<input type="checkbox" id="force-' + s.id + '" onchange="onForceToggle(\'' + s.id + '\')">' +
+        ' Force re-run</label>';
+    }
+
+    const borderCls = 'step-border-' + status.replace('-', '');
     const div = document.createElement('div');
-    div.className = 'step' + (on ? '' : ' step-off');
+    div.className = 'step' + (on ? '' : ' step-off') + ' ' + borderCls;
+    div.id = 'step-card-' + s.id;
     div.innerHTML =
       '<div class="step-head">' +
         '<span class="step-num">' + (i + 1) + '</span>' +
         '<div class="step-info">' +
           '<div class="step-name">' + s.name + '</div>' +
           '<div class="step-desc">' + s.desc(p) + '</div>' +
+          artifactHtml +
+          '<div class="step-status">' + checksHtml + '</div>' +
+          skipHtml +
         '</div>' +
-        '<div class="step-status">' + statusHtml + '</div>' +
+        '<span class="badge ' + badge.cls + '">' + badge.label + '</span>' +
       '</div>' +
-      '<div class="step-btns">' + btns + '</div>';
+      '<div class="step-btns">' + btns + forceHtml + '</div>';
     el.appendChild(div);
   });
+}
+
+function onForceToggle(stepId) {
+  const cb = document.getElementById('force-' + stepId);
+  const card = document.getElementById('step-card-' + stepId);
+  if (!cb || !card) return;
+  if (cb.checked) {
+    card.classList.add('step-force-active');
+    // Hide skip hint when forcing
+    const hint = card.querySelector('.step-skip-hint');
+    if (hint) hint.style.display = 'none';
+  } else {
+    card.classList.remove('step-force-active');
+    const hint = card.querySelector('.step-skip-hint');
+    if (hint) hint.style.display = '';
+  }
+}
+
+function toggleForceAll() {
+  const boxes = document.querySelectorAll('[id^="force-"]');
+  const allChecked = Array.from(boxes).every(b => b.checked);
+  boxes.forEach(b => { b.checked = !allChecked; onForceToggle(b.id.replace('force-', '')); });
 }
 
 function pick(name) {
@@ -1313,19 +1631,34 @@ function pick(name) {
   renderList();
 }
 
-function fd() {
-  return {
+function fd(stepId) {
+  const base = {
     title: document.getElementById('f-title').value,
     meta: document.getElementById('f-meta').value,
     description: document.getElementById('f-desc').value,
     sound: document.getElementById('f-sound').checked,
-    force: document.getElementById('f-force').checked,
   };
+  // Per-step force: check the step's own checkbox
+  if (stepId) {
+    const cb = document.getElementById('force-' + stepId);
+    if (cb && cb.checked) base.force = true;
+  }
+  return base;
 }
 
-function runStep(step) { run(step, fd()); }
+function runStep(step) { run(step, fd(step)); }
 
-function runFrom(step) { run('run-from', { ...fd(), from: step }); }
+function runFrom(step) {
+  const data = fd(step);
+  data.from = step;
+  // Collect force from all steps in the chain
+  const idx = STEPS.findIndex(s => s.id === step);
+  for (let i = idx; i < STEPS.length; i++) {
+    const cb = document.getElementById('force-' + STEPS[i].id);
+    if (cb && cb.checked) { data.force = true; break; }
+  }
+  run('run-from', data);
+}
 
 async function run(task, extra) {
   if (!sel) return;

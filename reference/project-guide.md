@@ -4,11 +4,20 @@ Canonical reference for all IF Hub project workflows. Every project CLAUDE.md sh
 
 ## Quick Reference
 
+**Streamlined flow** (scaffold → write → ship):
+```bash
+python tools/new_project.py "Title" game-name    # scaffold
+# ... edit story.ni, create walkthrough ...
+python tools/pipeline.py game-name --ship         # compile + test + register + publish + push hub
+```
+
+**Individual scripts** (all still work standalone):
+
 | Step | Script | What it produces |
 |------|--------|-----------------|
-| Compile | `tools/compile.py <name>` | `.ulx`, `play.html`, `walkthrough.html`, transcript, guide |
+| Compile | `tools/compile.py <name>` | `.ulx`, `play.html`, `walkthrough.html`, `index.html`, `source.html`, transcript, guide |
 | Extract commands | `tools/extract_commands.py` | `walkthrough.txt` from transcript or source |
-| Generate pages | `tools/web/generate_pages.py` | `index.html`, `source.html` |
+| Generate pages | `tools/web/generate_pages.py` | `index.html`, `source.html` (manual override) |
 | Register | `tools/register_game.py` | `games.json` + `cards.json` entries |
 | Publish | `tools/publish.py <name>` | GitHub repo + Pages deployment |
 | Push hub | `tools/push_hub.py <name>` | Commits + pushes hub registry to GitHub |
@@ -28,7 +37,7 @@ python /c/code/ifhub/tools/compile.py <name> --sound
 python /c/code/ifhub/tools/compile.py <name> --source <path/to/story.ni> --compile-only
 ```
 
-If `tests/inform7/walkthrough.txt` exists, compile.py automatically runs the walkthrough, generates the transcript and guide, and copies all walkthrough files to the web root.
+If `tests/inform7/walkthrough.txt` exists, compile.py automatically runs the walkthrough, generates the transcript and guide, and copies all walkthrough files to the web root. It also auto-generates `index.html` and `source.html` from `story.ni` metadata if they don't exist.
 
 ### Pipeline (all engines)
 
@@ -39,8 +48,11 @@ python /c/code/ifhub/tools/pipeline.py <name>
 # Compile + test
 python /c/code/ifhub/tools/pipeline.py <name> compile test
 
-# Full pipeline
+# Full pipeline (local only)
 python /c/code/ifhub/tools/pipeline.py <name> --all       # compile test push
+
+# Ship: compile + test + register + publish + push hub
+python /c/code/ifhub/tools/pipeline.py <name> --ship
 
 # Resume after failure
 python /c/code/ifhub/tools/pipeline.py <name> --continue
@@ -48,7 +60,7 @@ python /c/code/ifhub/tools/pipeline.py <name> --continue
 # Other flags
 #   --force         Skip staleness checks
 #   --dry-run       Show what would happen
-#   --message "msg" Commit message for push stage
+#   --message "msg" Commit message for push/publish stage
 ```
 
 ## Testing

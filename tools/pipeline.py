@@ -10,10 +10,14 @@ Usage:
 Stages (in pipeline order):
     compile   — Build game (engine-specific: I7, Ink, BASIC, etc.)
     test      — Walkthrough + regtest (Inform 7 / Z-machine only)
-    push      — Stage changes, show summary, prompt before commit/push
+    register  — Add to games.json + cards.json (idempotent)
+    publish   — Push project to its own GitHub Pages repo
+    push-hub  — Commit + push hub registry changes
+    push      — Stage all ifhub changes, prompt before commit/push
 
 Flags:
     --all             Run: compile test push
+    --ship            Run: compile test register publish push-hub
     --force           Skip staleness checks
     --dry-run         Show what would happen
     --continue        Resume from last failed stage
@@ -246,6 +250,63 @@ def stage_test(name: str, project_dir: Path, cfg_pipeline,
         output.skip("No tests configured")
 
 
+def stage_register(name: str, project_dir: Path, engine: str,
+                    pipeline_cfg: config.PipelineConfig):
+    """Register the game in games.json + cards.json (idempotent)."""
+    games_path = paths.IFHUB_DIR / "games.json"
+    cards_path = paths.IFHUB_DIR / "cards.json"
+
+    if not games_path.exists() or not cards_path.exists():
+        raise RuntimeError(f"games.json or cards.json not found in {paths.IFHUB_DIR}")
+
+    meta = config.extract_story_metadata(project_dir)
+    hub_id = pipeline_cfg.hub_id or name
+
+    games = json.loads(games_path.read_text(encoding="utf-8"))
+    cards = json.loads(cards_path.read_text(encoding="utf-8"))
+
+    already_registered = (
+        any(g["id"] == hub_id for g in games) and
+        any(c["id"] == hub_id for c in cards)
+    )
+    if already_registered:
+        output.skip(f"'{hub_id}' already registered in games.json + cards.json")
+        return
+
+    # Use register_game.py as a subprocess so it handles all edge cases
+    reg_cmd = [
+        sys.executable, str(paths.TOOLS_DIR / "register_game.py"),
+        "--name", hub_id,
+        "--title", meta["title"],
+        "--meta", meta["meta"],
+        "--description", meta["description"],
+        "--engine", engine,
+    ]
+    if pipeline_cfg.sound:
+        reg_cmd.extend(["--sound", "blorb"])
+    r = process.run(reg_cmd)
+    if r.returncode != 0:
+        raise RuntimeError(f"register failed (exit {r.returncode})")
+
+
+def stage_publish(name: str, commit_msg: str):
+    """Publish the project to its own GitHub Pages repo."""
+    cmd = [sys.executable, str(paths.TOOLS_DIR / "publish.py"), name]
+    if commit_msg:
+        cmd.append(commit_msg)
+    r = process.run(cmd)
+    if r.returncode != 0:
+        raise RuntimeError(f"publish failed (exit {r.returncode})")
+
+
+def stage_push_hub(name: str):
+    """Push hub registry changes (games.json + cards.json) to GitHub."""
+    cmd = [sys.executable, str(paths.TOOLS_DIR / "push_hub.py"), name]
+    r = process.run(cmd)
+    if r.returncode != 0:
+        raise RuntimeError(f"push-hub failed (exit {r.returncode})")
+
+
 def stage_push(name: str, commit_msg: str):
     print("  Staging changes...")
     cwd = paths.I7_ROOT
@@ -285,7 +346,7 @@ def stage_push(name: str, commit_msg: str):
 
 # --- Main ---
 
-PIPELINE_ORDER = ["compile", "test", "push"]
+PIPELINE_ORDER = ["compile", "test", "register", "publish", "push-hub", "push"]
 VALID_STAGES = set(PIPELINE_ORDER)
 
 
@@ -294,10 +355,12 @@ def main():
     parser.add_argument("game", help="Game name")
     parser.add_argument("stages", nargs="*", help="Stages to run")
     parser.add_argument("--all", action="store_true", help="compile test push")
+    parser.add_argument("--ship", action="store_true",
+                        help="compile test register publish push-hub")
     parser.add_argument("--force", action="store_true", help="Skip staleness checks")
     parser.add_argument("--dry-run", action="store_true", help="Show plan only")
     parser.add_argument("--continue", dest="resume", action="store_true", help="Resume from failure")
-    parser.add_argument("--message", help="Commit message for push")
+    parser.add_argument("--message", help="Commit message for push/publish")
     args = parser.parse_args()
 
     name = args.game
@@ -315,7 +378,9 @@ def main():
             print(f"Unknown stage: {s}", file=sys.stderr)
             sys.exit(1)
 
-    if args.all:
+    if args.ship:
+        stages = ["compile", "test", "register", "publish", "push-hub"]
+    elif args.all:
         stages = ["compile", "test", "push"]
 
     if not stages:
@@ -416,6 +481,12 @@ def main():
             elif stage == "test":
                 stage_test(name, project_dir, pipeline_cfg,
                            engine_spec=engine_spec)
+            elif stage == "register":
+                stage_register(name, project_dir, engine, pipeline_cfg)
+            elif stage == "publish":
+                stage_publish(name, args.message or "")
+            elif stage == "push-hub":
+                stage_push_hub(name)
             elif stage == "push":
                 stage_push(name, args.message or "")
 

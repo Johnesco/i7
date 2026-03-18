@@ -96,7 +96,7 @@ All games use a three-tier CSS overlay architecture. Full documentation in `C:\c
 
 The shared `play.html` version-gates Tier 3 effects for Zork I. When the binary path matches `zork1-v(\d+)` with version >= 3, it adds `body.zork1-enhanced` and activates mood palettes + effects. Other games get Tier 2 static theming only.
 
-- **Platform theme override**: When a platform theme is selected in the hub, game play.html files receive `ifhub:applyTheme` via postMessage and inject a `<style id="platform-theme-override">` element. Games with overlays add `body.platform-theme-active` to suppress their visual effects (particles, scanlines, vignettes, pseudo-elements, animations).
+- **Platform theme override**: The hub directly injects `<style id="ifhub-theme-override">` into all same-origin iframes (game, source, walkthrough) via `contentDocument`. Engine-specific CSS builders (`buildParchmentCSS`, `buildInkCSS`, `buildBasicCSS`, `buildChromeCSS`) target the correct selectors for each page type. Games with `overlayLabel` (mood-engine overlays) are exempt from direct injection and instead receive `ifhub:applyTheme` / `ifhub:restoreOverlay` via postMessage, allowing their own listener to coordinate with `body.platform-theme-active` to suppress visual effects.
 
 ### MutationObserver Input Detection
 
