@@ -255,5 +255,17 @@
     "sourceUrl": "/guess_the_verb/source.html",
     "engine": "inform7",
     "tags": []
+  },
+  {
+    "id": "life",
+    "title": "Life",
+    "sourceLabel": "story.ni",
+    "playUrl": "/life/play.html",
+    "landingUrl": "/life/",
+    "walkthroughUrl": "/life/walkthrough.html",
+    "sourceBrowser": true,
+    "sourceUrl": "/life/source.html",
+    "engine": "inform7",
+    "tags": []
   }
 ]
