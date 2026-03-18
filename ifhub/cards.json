@@ -193,16 +193,5 @@
     "landingUrl": "/guess_the_verb/",
     "engine": "inform7",
     "tags": []
-  },
-  {
-    "id": "life",
-    "base": "life",
-    "title": "Life",
-    "meta": "An Interactive Fiction",
-    "description": "An interactive fiction game.",
-    "playUrl": "/life/play.html",
-    "landingUrl": "/life/",
-    "engine": "inform7",
-    "tags": []
   }
 ]
