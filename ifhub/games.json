@@ -265,7 +265,7 @@
     "sourceBrowser": true,
     "sourceUrl": "/cloak-sharpee/source.html",
     "engine": "sharpee",
-    "tags": []
+    "tags": ["cloak", "demo"]
   },
   {
     "id": "cloak-inform7",
@@ -277,7 +277,7 @@
     "sourceBrowser": true,
     "sourceUrl": "/cloak-inform7/source.html",
     "engine": "inform7",
-    "tags": []
+    "tags": ["cloak", "demo"]
   },
   {
     "id": "guess_the_verb-sharpee",
@@ -299,9 +299,6 @@
     "sourceBrowser": true,
     "sourceUrl": "/cloak-ink/source.html",
     "engine": "ink",
-    "tags": [
-      "demo",
-      "classic"
-    ]
+    "tags": ["cloak", "demo", "classic"]
   }
 ]

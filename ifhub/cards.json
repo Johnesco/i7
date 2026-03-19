@@ -203,7 +203,7 @@
     "playUrl": "/cloak-sharpee/play.html",
     "landingUrl": "/cloak-sharpee/",
     "engine": "sharpee",
-    "tags": []
+    "tags": ["cloak", "demo"]
   },
   {
     "id": "cloak-inform7",
@@ -214,7 +214,7 @@
     "playUrl": "/cloak-inform7/play.html",
     "landingUrl": "/cloak-inform7/",
     "engine": "inform7",
-    "tags": []
+    "tags": ["cloak", "demo"]
   },
   {
     "id": "guess_the_verb-sharpee",
@@ -236,9 +236,6 @@
     "playUrl": "/cloak-ink/play.html",
     "landingUrl": "/cloak-ink/",
     "engine": "ink",
-    "tags": [
-      "demo",
-      "classic"
-    ]
+    "tags": ["cloak", "demo", "classic"]
   }
 ]
