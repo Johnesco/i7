@@ -51,7 +51,8 @@
     "engine": "inform7",
     "tags": [
       "horror",
-      "classic"
+      "classic",
+      "basic"
     ],
     "versions": [
       {
@@ -134,7 +135,8 @@
     "engine": "basic",
     "tags": [
       "horror",
-      "classic"
+      "classic",
+      "basic"
     ]
   },
   {
@@ -147,7 +149,8 @@
     "landingUrl": "/apple-adventure/",
     "engine": "basic",
     "tags": [
-      "classic"
+      "classic",
+      "basic"
     ]
   },
   {
