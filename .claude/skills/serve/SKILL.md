@@ -1,49 +1,55 @@
 ---
 name: serve
-description: Start the ifhub dev server for local testing. Kills zombie processes first.
+description: Start Portman dev server and register ifhub sites for local testing.
 disable-model-invocation: true
 argument-hint: "[port]"
 ---
 
-# Start Local Dev Server
+# Start Local Dev Server (Portman)
 
-Start `tools/dev-server.py` for local testing. Default port 8000.
+Start Portman to serve ifhub and all game projects locally. Default port 9000.
 
 ## Steps
 
-1. **Kill zombies first** — always check for and kill stale python processes before starting:
+1. **Check if Portman is already running**:
    ```bash
-   # Check for existing python processes
-   tasklist 2>/dev/null | grep -i python
-   # If any found, check which are listening on the target port
-   netstat -ano 2>/dev/null | grep -E "LISTENING.*:<PORT>"
-   # Kill any process holding the port (use the PID from netstat)
-   taskkill //F //PID <pid>
-   # If there are many zombie python processes (10+), kill them all:
-   taskkill //F //IM python3.13.exe
+   python /c/code/portman/portman.py status
+   ```
+   If already running, skip to step 4.
+
+2. **Register ifhub sites** (idempotent — safe to re-run):
+   ```bash
+   python /c/code/portman/portman.py add ifhub "C:\code\ifhub\ifhub"
+   ```
+   Then register each game project:
+   ```bash
+   for dir in /c/code/ifhub/projects/*/; do
+       name=$(basename "$dir")
+       python /c/code/portman/portman.py add "$name" "$dir"
+   done
    ```
 
-2. **Start the server** in the background:
+3. **Start Portman** in the background:
    ```bash
-   python /c/code/ifhub/tools/dev-server.py --port <PORT> &
+   python /c/code/portman/portman.py serve --port <PORT>
    ```
    Use `run_in_background: true` on the Bash tool so it doesn't block the conversation.
 
-3. **Verify it's listening** (wait 2 seconds first):
+4. **Verify it's running** (wait 2 seconds if just started):
    ```bash
-   curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:<PORT>/ifhub/
+   curl -s http://127.0.0.1:<PORT>/api/status
    ```
 
-4. **Report URLs to user**:
+5. **Report URLs to user**:
+   - Dashboard: `http://127.0.0.1:<PORT>/`
    - Hub: `http://127.0.0.1:<PORT>/ifhub/app.html`
-   - Zork1 landing: `http://127.0.0.1:<PORT>/zork1/`
-   - Zork1 v3: `http://127.0.0.1:<PORT>/zork1/v3/play.html`
-   - Zork1 latest: `http://127.0.0.1:<PORT>/zork1/play.html`
+   - Games: `http://127.0.0.1:<PORT>/<game>/play.html`
 
 ## Important
 
-- The dev server uses `Cache-Control: no-cache` — no stale content issues.
-- The server maps `/<game>/*` to `projects/<game>/` and `/ifhub/*` to `ifhub/`.
-- Always kill before starting. Never leave zombies.
-- If port is in use and can't be freed, try port+1.
-- Use `/kill-servers` to tear down when done.
+- Portman is a single process — no zombie risk. Multiple Claude tabs can use it safely.
+- Sites are registered in `~/.portman/config.json` and persist across sessions.
+- `add` works while the server is running (hot reload via API).
+- Uses `Cache-Control: no-cache` — no stale content.
+- Default port is 9000. If user specifies a port, use that instead.
+- No need to kill zombies first — Portman doesn't create child processes.

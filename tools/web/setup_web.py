@@ -22,19 +22,17 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from lib import output, web
+from lib import output, web, web_setup
 
 
 def main():
     parser = argparse.ArgumentParser(description="Set up Parchment web player.")
-    parser.add_argument("--title", required=True, help="Game title")
+    web_setup.add_common_args(parser)
     parser.add_argument("--ulx", help="Path to .ulx file")
     parser.add_argument("--blorb", help="Path to .gblorb file")
-    parser.add_argument("--out", required=True, help="Output directory")
     parser.add_argument("--template", help="Custom play.html template")
     parser.add_argument("--walkthrough", action="store_true", help="Generate walkthrough.html")
     parser.add_argument("--mood", action="store_true", help="Copy mood-engine.js for mood theming")
-    parser.add_argument("--force", action="store_true", help="Overwrite play.html")
     args = parser.parse_args()
 
     script_dir = Path(__file__).resolve().parent
@@ -86,9 +84,7 @@ def main():
         template_path = script_dir / "play-template.html"
     play_html = out_dir / "play.html"
 
-    if play_html.exists() and not args.force:
-        print("  play.html already exists (use --force to overwrite)")
-    else:
+    if not web_setup.check_overwrite(play_html, args.force):
         # Warn if play.html has a custom overlay but no template was provided
         if play_html.exists() and args.force and not args.template:
             existing = play_html.read_text(encoding="utf-8")
@@ -121,9 +117,7 @@ def main():
     # Generate walkthrough.html if requested
     if args.walkthrough:
         walk_html = out_dir / "walkthrough.html"
-        if walk_html.exists() and not args.force:
-            print("  walkthrough.html already exists (use --force to overwrite)")
-        else:
+        if not web_setup.check_overwrite(walk_html, args.force):
             walk_template = script_dir / "walkthrough-template.html"
             if walk_template.exists():
                 storage_key = game_path.stem.split(".")[0]

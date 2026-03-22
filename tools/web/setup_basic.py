@@ -27,6 +27,9 @@ import shutil
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from lib import web_setup
+
 # Engine → template file mapping
 ENGINE_TEMPLATES = {
     "wwwbasic": "play-wwwbasic.html",
@@ -50,24 +53,21 @@ def main():
     parser.add_argument("--engine", required=True,
                         choices=sorted(ENGINE_TEMPLATES),
                         help="BASIC engine to use")
-    parser.add_argument("--title", required=True, help="Game title")
+    web_setup.add_common_args(parser)
     parser.add_argument("--source", help="Path to .bas source file")
     parser.add_argument("--compiled",
                         help="Path to pre-compiled .js file (qbjc only)")
     parser.add_argument("--bundle",
                         help="Path to .jsdos bundle file (jsdos only)")
-    parser.add_argument("--out", required=True, help="Output directory")
     parser.add_argument("--version-label", default="",
                         help="Version subtitle (e.g. 'v0 — Original BASIC')")
     parser.add_argument("--back-href", default="./",
                         help="Back link target (default: ./)")
-    parser.add_argument("--force", action="store_true",
-                        help="Overwrite existing play.html")
     args = parser.parse_args()
 
     engine = args.engine
     out_dir = Path(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    web_setup.ensure_output_dir(out_dir)
     script_dir = Path(__file__).resolve().parent
 
     # --- Validate engine-specific inputs ---
@@ -184,9 +184,7 @@ def main():
 
     # --- Write play.html ---
     play_html = out_dir / "play.html"
-    if play_html.exists() and not args.force:
-        print(f"  play.html already exists (use --force to overwrite)")
-    else:
+    if not web_setup.check_overwrite(play_html, args.force):
         print(f"Generating play.html ({engine})...")
         play_html.write_text(html, encoding="utf-8")
         print(f"  Created: {play_html}")

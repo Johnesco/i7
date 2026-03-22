@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 from . import process
+from .paths import GH_ORG
 
 
 def status(cwd: Path | str | None = None) -> str:
@@ -53,7 +54,7 @@ def init(cwd: Path | str | None = None):
 def gh_repo_create(name: str, description: str, cwd: Path | str | None = None) -> int:
     """Create a GitHub repo via gh CLI."""
     r = process.run(
-        ["gh", "repo", "create", f"Johnesco/{name}", "--public",
+        ["gh", "repo", "create", f"{GH_ORG}/{name}", "--public",
          "--source=.", "--description", description],
         cwd=cwd,
     )
@@ -63,7 +64,7 @@ def gh_repo_create(name: str, description: str, cwd: Path | str | None = None) -
 def gh_enable_pages(repo_name: str) -> int:
     """Enable GitHub Pages with workflow deployment."""
     r = process.run(
-        ["gh", "api", f"repos/Johnesco/{repo_name}/pages",
+        ["gh", "api", f"repos/{GH_ORG}/{repo_name}/pages",
          "-X", "POST", "-f", "build_type=workflow"],
         capture=True,
     )

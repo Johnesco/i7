@@ -612,6 +612,17 @@ body.resizing iframe {
 
 <script>
 /* ==================================================================
+   CONFIG
+   ================================================================== */
+var CONFIG = {
+  MIN_PANE_WIDTH: 200,
+  SEARCH_MIN_LENGTH: 2,
+  SEARCH_DEBOUNCE_MS: 200,
+  DEFAULT_VOLUME: 70,
+  IFRAME_THEME_DELAY_MS: 500
+};
+
+/* ==================================================================
    STATE
    ================================================================== */
 var games = [];       // populated from games.json
@@ -625,28 +636,18 @@ var sourceCache = {};
    ================================================================== */
 document.addEventListener('DOMContentLoaded', function() {
   Promise.all([
-    fetch('games.json').then(function(r) { return r.json(); }),
+    fetch('games.json').then(function(r) { return r.json(); }).catch(function() { console.error('Failed to load games.json'); return []; }),
     fetch('hubs.json').then(function(r) { return r.json(); }).catch(function() { return []; })
   ]).then(function(results) {
     var data = results[0];
     var hubs = results[1];
 
-    var params = new URLSearchParams(window.location.search);
-    var hubParam = params.get('hub');
-    var activeHub = null;
-    if (hubParam) {
-      for (var i = 0; i < hubs.length; i++) {
-        if (hubs[i].id === hubParam) { activeHub = hubs[i]; break; }
-      }
-    }
+    var hubResult = resolveHub(hubs);
+    var activeHub = hubResult.activeHub;
 
     // Filter games by hub
-    if (activeHub && activeHub.filter) {
-      data = data.filter(function(g) {
-        if (activeHub.filter.engine && g.engine !== activeHub.filter.engine) return false;
-        if (activeHub.filter.tag && (!g.tags || g.tags.indexOf(activeHub.filter.tag) === -1)) return false;
-        return true;
-      });
+    if (activeHub) {
+      data = data.filter(function(g) { return matchesHub(g, activeHub); });
     }
 
     games = data;
@@ -676,9 +677,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     buildStyleDropdown(null);
 
-    var initGame = params.get('game') || games[0].id;
-    if (!gameMap[initGame]) initGame = games[0].id;
-    switchGame(initGame);
+    var params = new URLSearchParams(window.location.search);
+    var initGame = params.get('game') || (games.length ? games[0].id : '');
+    if (!gameMap[initGame] && games.length) initGame = games[0].id;
+    if (initGame) switchGame(initGame);
     applyView('game+source');
   });
 });
@@ -734,7 +736,7 @@ function bindUI() {
     var onMove = function(e) {
       var x = e.touches ? e.touches[0].clientX : e.clientX;
       var w = document.body.clientWidth;
-      var gameW = Math.max(200, Math.min(x, w - 200));
+      var gameW = Math.max(CONFIG.MIN_PANE_WIDTH, Math.min(x, w - CONFIG.MIN_PANE_WIDTH));
       document.body.style.setProperty('--game-width', gameW + 'px');
     };
 
@@ -918,13 +920,71 @@ function highlightJSTokens(html) {
 /* ==================================================================
    ENGINE-AWARE HIGHLIGHTER DISPATCH
    ================================================================== */
+/* ==================================================================
+   REZ SYNTAX HIGHLIGHTER
+   ================================================================== */
+var REZ_ELEMENT_RE = /^@\w+/;
+
+function highlightRez(line) {
+  if (REZ_ELEMENT_RE.test(line)) return '<span class="syn-head">' + esc(line) + '</span>';
+  if (/^\s*%%/.test(line)) return '<span class="syn-cmt">' + esc(line) + '</span>';
+
+  var out = '', state = 'normal', buf = '';
+
+  function flush(cls) {
+    if (!buf) return;
+    if (cls) out += '<span class="' + cls + '">' + esc(buf) + '</span>';
+    else out += esc(buf);
+    buf = '';
+  }
+
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (state === 'normal') {
+      if (ch === '"') { flush(); buf = ch; state = 'string'; }
+      else if (ch === '`') { flush(); buf = ch; state = 'template'; }
+      else if (ch === '#' && /\w/.test(line[i+1] || '')) { flush(); buf = ch; state = 'ref'; }
+      else if (ch === ':' && /\w/.test(line[i+1] || '')) { flush(); buf = ch; state = 'keyword'; }
+      else if (ch === '$' && /\w/.test(line[i+1] || '')) { flush(); buf = ch; state = 'global'; }
+      else if (ch === '%' && line[i+1] === '%') { flush(); out += '<span class="syn-cmt">' + esc(line.slice(i)) + '</span>'; return out; }
+      else buf += ch;
+    } else if (state === 'string') {
+      buf += ch;
+      if (ch === '"') { flush('syn-str'); state = 'normal'; }
+    } else if (state === 'template') {
+      buf += ch;
+      if (ch === '`') { flush('syn-str'); state = 'normal'; }
+    } else if (state === 'ref') {
+      if (/\w/.test(ch)) buf += ch;
+      else { flush('syn-sub'); buf = ch; state = 'normal'; }
+    } else if (state === 'keyword') {
+      if (/\w/.test(ch)) buf += ch;
+      else { flush('syn-kw'); buf = ch; state = 'normal'; }
+    } else if (state === 'global') {
+      if (/[\w.]/.test(ch)) buf += ch;
+      else { flush('syn-num'); buf = ch; state = 'normal'; }
+    }
+  }
+  if (state === 'string' || state === 'template') flush('syn-str');
+  else if (state === 'ref') flush('syn-sub');
+  else if (state === 'keyword') flush('syn-kw');
+  else if (state === 'global') flush('syn-num');
+  else flush();
+
+  // Highlight @directives inline
+  out = out.replace(/(@\w+)/g, '<span class="syn-head">$1</span>');
+  return out;
+}
+
 function highlightLine(line, engine) {
   if (engine === 'sharpee') return highlightJS(line);
+  if (engine === 'rez') return highlightRez(line);
   return highlightInform(line);
 }
 
 function isHeadingLine(line, engine) {
   if (engine === 'sharpee') return JS_CLASS_RE.test(line) || /^\s+(private|public|protected|static|async)\s+(?:(?:private|public|protected|static|async)\s+)?\w+\s*\(/.test(line);
+  if (engine === 'rez') return REZ_ELEMENT_RE.test(line);
   return I7_HEADING.test(line);
 }
 
@@ -960,6 +1020,18 @@ function buildNav(lines, engine) {
       if (mm) {
         items.push('<a class="nav-item nav-chapter" data-line="' + num + '">' + esc(mm[2] + '()') + '</a>');
       }
+    }
+  } else if (engine === 'rez') {
+    for (var i = 0; i < lines.length; i++) {
+      var rm = lines[i].match(/^@(\w+)\s+(.*)/);
+      if (!rm) continue;
+      var num = i + 1;
+      var tag = rm[1];
+      var rest = rm[2].replace(/\s*\{.*/, '').trim();
+      var cls = 'nav-item';
+      if (tag === 'game' || tag === 'scene') cls += ' nav-part';
+      else cls += ' nav-chapter';
+      items.push('<a class="' + cls + '" data-line="' + num + '">' + esc('@' + tag + ' ' + rest) + '</a>');
     }
   } else {
     for (var i = 0; i < lines.length; i++) {
@@ -1002,7 +1074,7 @@ function initSearch() {
 
   function doSearch(q) {
     clearHits();
-    if (!q || q.length < 2) return;
+    if (!q || q.length < CONFIG.SEARCH_MIN_LENGTH) return;
     var lower = q.toLowerCase();
     wrap.querySelectorAll('td.lc').forEach(function(td) {
       if (td.textContent.toLowerCase().includes(lower)) markMatches(td, q);
@@ -1054,7 +1126,7 @@ function initSearch() {
   input.addEventListener('input', function() {
     clearTimeout(debounce);
     var self = this;
-    debounce = setTimeout(function() { doSearch(self.value); }, 200);
+    debounce = setTimeout(function() { doSearch(self.value); }, CONFIG.SEARCH_DEBOUNCE_MS);
   });
 
   input.addEventListener('keydown', function(e) {
@@ -1191,7 +1263,7 @@ function initSoundControls() {
   var savedMuted = localStorage.getItem('ifhub-audio-muted');
   var savedVolume = localStorage.getItem('ifhub-audio-volume');
   var isMuted = savedMuted === '1';
-  var volume = savedVolume !== null ? parseInt(savedVolume, 10) : 70;
+  var volume = savedVolume !== null ? parseInt(savedVolume, 10) : CONFIG.DEFAULT_VOLUME;
 
   slider.value = volume;
   muteBtn.classList.toggle('muted', isMuted);
@@ -1200,13 +1272,13 @@ function initSoundControls() {
     isMuted = !isMuted;
     localStorage.setItem('ifhub-audio-muted', isMuted ? '1' : '0');
     muteBtn.classList.toggle('muted', isMuted);
-    sendSoundMessage('ifhub:setMute', { muted: isMuted });
+    sendGameMessage({ type: 'ifhub:setMute', muted: isMuted });
   });
 
   slider.addEventListener('input', function () {
     volume = parseInt(this.value, 10);
     localStorage.setItem('ifhub-audio-volume', volume);
-    sendSoundMessage('ifhub:setVolume', { volume: volume / 100 });
+    sendGameMessage({ type: 'ifhub:setVolume', volume: volume / 100 });
   });
 
   // Listen for soundReady from iframe
@@ -1215,17 +1287,16 @@ function initSoundControls() {
     soundReady = true;
     controls.style.display = '';
     // Push current state to iframe
-    sendSoundMessage('ifhub:setMute', { muted: isMuted });
-    sendSoundMessage('ifhub:setVolume', { volume: volume / 100 });
+    sendGameMessage({ type: 'ifhub:setMute', muted: isMuted });
+    sendGameMessage({ type: 'ifhub:setVolume', volume: volume / 100 });
   });
 }
 
-function sendSoundMessage(type, data) {
+function sendGameMessage(msg) {
   var iframe = document.getElementById('game-frame');
-  if (!iframe || !iframe.contentWindow) return;
-  var msg = { type: type };
-  for (var k in data) msg[k] = data[k];
-  iframe.contentWindow.postMessage(msg, '*');
+  if (iframe && iframe.contentWindow) {
+    iframe.contentWindow.postMessage(msg, '*');
+  }
 }
 
 /* ==================================================================
@@ -1249,7 +1320,7 @@ function buildStyleDropdown(gameId) {
   var select = document.createElement('select');
   select.id = 'style-select';
   select.title = 'Theme';
-  select.style.cssText = 'background:var(--input-bg);border:1px solid var(--border);color:var(--accent);border-radius:4px;padding:3px 8px;font-family:inherit;font-size:0.85em;cursor:pointer;';
+  select.style.cssText = THEME_SELECT_STYLE;
 
   var g = gameId ? gameMap[gameId] : null;
   var hasOverlay = g && g.overlayLabel;
@@ -1269,12 +1340,7 @@ function buildStyleDropdown(gameId) {
   }
 
   // Platform themes
-  for (var i = 0; i < THEMES.length; i++) {
-    var opt = document.createElement('option');
-    opt.value = THEMES[i].id;
-    opt.textContent = THEMES[i].name;
-    select.appendChild(opt);
-  }
+  populateThemeOptions(select);
 
   // Determine current selection
   var stored = gameId ? getStylePref(gameId) : null;
@@ -1336,12 +1402,12 @@ function applyCurrentStyle(gameId, val) {
     var classic = getTheme('classic');
     applyChrome(classic);
     if (hasOverlay) {
-      setTimeout(function() { sendGameMessage({ type: 'ifhub:restoreOverlay' }); }, 500);
+      setTimeout(function() { sendGameMessage({ type: 'ifhub:restoreOverlay' }); }, CONFIG.IFRAME_THEME_DELAY_MS);
     } else {
       setTimeout(function() {
         var gf = document.getElementById('game-frame');
         if (gf) removeThemeCSS(gf);
-      }, 500);
+      }, CONFIG.IFRAME_THEME_DELAY_MS);
     }
   } else {
     var theme = getTheme(val);
@@ -1353,131 +1419,16 @@ function applyCurrentStyle(gameId, val) {
           game: theme.game,
           scrollbar: theme.scrollbar
         });
-      }, 500);
+      }, CONFIG.IFRAME_THEME_DELAY_MS);
     }
     // themeAllIframes handles direct injection for non-overlay games
   }
-  setTimeout(function() { themeAllIframes(); }, 500);
-}
-
-function sendGameMessage(msg) {
-  var iframe = document.getElementById('game-frame');
-  if (iframe && iframe.contentWindow) {
-    iframe.contentWindow.postMessage(msg, '*');
-  }
+  setTimeout(function() { themeAllIframes(); }, CONFIG.IFRAME_THEME_DELAY_MS);
 }
 
 /* ==================================================================
    THEME IFRAMES (source browser, walkthrough, game)
    ================================================================== */
-
-// Chrome-style rules for document pages (source, walkthrough, landing)
-function buildChromeCSS(c, sb) {
-  return 'html, body { background: ' + c.pageBg + ' !important; color: ' + c.pageFg + ' !important; }\n' +
-    'h1, h2, h3, h4, strong { color: ' + c.headingFg + ' !important; }\n' +
-    'a { color: ' + c.accentFg + ' !important; }\n' +
-    'a:hover { color: ' + c.btnHoverBg + ' !important; }\n' +
-    'input, select, textarea { background: ' + c.inputBg + ' !important; color: ' + c.inputFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
-    'button { background: ' + c.btnBg + ' !important; color: ' + c.btnFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
-    'button:hover { background: ' + c.btnHoverBg + ' !important; }\n' +
-    'button.active, .tab-btn.active, .mode-btn.active { background: ' + c.activeTabBg + ' !important; color: ' + c.activeTabFg + ' !important; }\n' +
-    'pre, code { background: ' + c.codeBg + ' !important; color: ' + c.codeFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
-    'table, th, td, tr { border-color: ' + c.border + ' !important; }\n' +
-    'th { color: ' + c.headingFg + ' !important; }\n' +
-    'td { color: ' + c.pageFg + ' !important; }\n' +
-    '.toolbar, .source-toolbar, .wt-toolbar, header, nav { background: ' + c.toolbarBg + ' !important; border-color: ' + c.border + ' !important; color: ' + c.mutedFg + ' !important; }\n' +
-    '.sidebar, .nav, .wt-sidebar { background: ' + c.toolbarBg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
-    '.nav-item, .wt-nav-item, .sidebar a { color: ' + c.mutedFg + ' !important; }\n' +
-    '.nav-item.active, .wt-nav-item.active, .sidebar a.active { color: ' + c.headingFg + ' !important; border-left-color: ' + c.accentFg + ' !important; background: ' + c.surfaceBg + ' !important; }\n' +
-    'footer { color: ' + c.footerFg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
-    buildScrollbarCSS(sb);
-}
-
-// Parchment-style rules for Inform 7 / Z-machine game iframes
-function buildParchmentCSS(g, sb) {
-  return 'body, html { background: ' + g.bodyBg + ' !important; }\n' +
-    '.BufferWindow { color: ' + g.bufferFg + ' !important; background-color: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; font-size: ' + g.bufferSize + ' !important; line-height: ' + g.bufferLineHeight + ' !important; }\n' +
-    '.BufferWindow span { color: ' + g.bufferFg + ' !important; }\n' +
-    '.BufferWindow span.reverse { color: ' + g.bufferBg + ' !important; background-color: ' + g.bufferFg + ' !important; }\n' +
-    '.BufferWindow .Style_input { color: ' + g.inputFg + ' !important; }\n' +
-    '.BufferWindow .Style_emphasized { color: ' + g.emphFg + ' !important; }\n' +
-    '.BufferWindow .Style_header { color: ' + g.headerFg + ' !important; }\n' +
-    '.BufferWindow .Style_subheader,\n' +
-    '.BufferWindow .Style_alert { color: ' + g.headerFg + ' !important; }\n' +
-    '.BufferWindow .Input,\n' +
-    '.BufferWindow textarea.Input { color: ' + g.inputFg + ' !important; caret-color: ' + g.inputFg + '; font-family: ' + g.monoFamily + ' !important; }\n' +
-    '.GridWindow { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; padding: 4px 12px !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; box-sizing: border-box !important; }\n' +
-    '.GridWindow span { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
-    '.GridWindow span.reverse { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
-    '#loadingpane { color: ' + g.bufferFg + '; background: ' + g.bodyBg + '; font-family: ' + g.monoFamily + '; }\n' +
-    '.WindowFrame { background: transparent !important; }\n' +
-    'div#gameport { background: linear-gradient(to bottom, ' + g.gridBg + ' 0px, ' + g.gridBg + ' ' + ((parseInt(g.gridLineHeight) || 20) + 10) + 'px, ' + g.bufferBg + ' ' + ((parseInt(g.gridLineHeight) || 20) + 10) + 'px) !important; }\n' +
-    buildScrollbarCSS(sb);
-}
-
-// Ink-style rules for Ink/Inkle game iframes
-function buildInkCSS(g, sb) {
-  return 'body { background: ' + g.bodyBg + ' !important; color: ' + g.bufferFg + ' !important; font-family: ' + g.propFamily + ' !important; }\n' +
-    'h1 { color: ' + g.headerFg + ' !important; border-bottom-color: ' + g.gridBg + ' !important; }\n' +
-    '#story p { color: ' + g.bufferFg + ' !important; }\n' +
-    '.choice-echo { color: ' + g.gridFg + ' !important; }\n' +
-    '#choices { border-top-color: ' + g.gridBg + ' !important; }\n' +
-    '.choice { color: ' + g.inputFg + ' !important; font-family: ' + g.propFamily + ' !important; }\n' +
-    '.choice:hover { color: ' + g.headerFg + ' !important; }\n' +
-    '#end { color: ' + g.emphFg + ' !important; }\n' +
-    buildScrollbarCSS(sb);
-}
-
-// BASIC / generic web-only game rules
-function buildBasicCSS(g, sb) {
-  return 'body, html { background: ' + g.bodyBg + ' !important; color: ' + g.bufferFg + ' !important; font-family: ' + g.monoFamily + ' !important; }\n' +
-    'pre, .output, .terminal, #screen { color: ' + g.bufferFg + ' !important; background: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; }\n' +
-    'input, .input-line { color: ' + g.inputFg + ' !important; background: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; caret-color: ' + g.inputFg + '; }\n' +
-    buildScrollbarCSS(sb);
-}
-
-// Sharpee — uses CSS custom properties, so we set them on :root
-function buildSharpeeCSS(g, sb) {
-  return ':root {\n' +
-    '  --theme-bg: ' + g.bodyBg + ' !important;\n' +
-    '  --theme-bg-alt: ' + g.gridBg + ' !important;\n' +
-    '  --theme-text: ' + g.bufferFg + ' !important;\n' +
-    '  --theme-text-muted: ' + g.emphFg + ' !important;\n' +
-    '  --theme-accent: ' + g.inputFg + ' !important;\n' +
-    '  --theme-accent-text: ' + g.bodyBg + ' !important;\n' +
-    '  --theme-border: ' + g.gridBg + ' !important;\n' +
-    '  --theme-input-bg: ' + g.bufferBg + ' !important;\n' +
-    '  --theme-menu-bg: ' + g.gridBg + ' !important;\n' +
-    '  --theme-menu-hover: ' + g.bodyBg + ' !important;\n' +
-    '  --theme-font: ' + g.monoFamily + ' !important;\n' +
-    '  --theme-font-size: ' + g.bufferSize + ' !important;\n' +
-    '  --theme-line-height: ' + g.bufferLineHeight + ' !important;\n' +
-    '}\n' +
-    '#status-line { background: ' + g.gridBg + ' !important; color: ' + g.gridFg + ' !important; }\n' +
-    '#text-content p { color: ' + g.bufferFg + ' !important; }\n' +
-    '.command-echo { color: ' + g.emphFg + ' !important; }\n' +
-    '#command-input { color: ' + g.inputFg + ' !important; caret-color: ' + g.inputFg + '; }\n' +
-    '.prompt { color: ' + g.inputFg + ' !important; }\n' +
-    buildScrollbarCSS(sb);
-}
-
-function buildScrollbarCSS(sb) {
-  return '* { scrollbar-color: ' + sb.thumb + ' ' + sb.track + ' !important; }\n' +
-    '::-webkit-scrollbar { width: 10px; background: ' + sb.track + ' !important; }\n' +
-    '::-webkit-scrollbar-thumb { background: ' + sb.thumb + ' !important; border-radius: 4px; }\n' +
-    '::-webkit-scrollbar-thumb:hover { background: ' + sb.thumbHover + ' !important; }\n';
-}
-
-function ensureRetroFontsInDoc(doc) {
-  try {
-    if (doc.getElementById('retro-platform-fonts')) return;
-    var link = doc.createElement('link');
-    link.id = 'retro-platform-fonts';
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=DotGothic16&family=Pixelify+Sans&family=Press+Start+2P&family=Silkscreen&family=Sixtyfour&family=Tiny5&family=VT323&family=Workbench&display=swap';
-    doc.head.appendChild(link);
-  } catch(e) {}
-}
 
 function injectThemeCSS(iframe, css) {
   try {
@@ -1486,7 +1437,7 @@ function injectThemeCSS(iframe, css) {
     var existing = doc.getElementById('ifhub-theme-override');
     if (existing) existing.remove();
     if (!css) return;
-    ensureRetroFontsInDoc(doc);
+    ensureRetroFonts(doc);
     var style = doc.createElement('style');
     style.id = 'ifhub-theme-override';
     style.textContent = css;
@@ -1538,6 +1489,8 @@ function themeGameIframe() {
     css = buildBasicCSS(theme.game, theme.scrollbar);
   } else if (engine === 'sharpee') {
     css = buildSharpeeCSS(theme.game, theme.scrollbar);
+  } else if (engine === 'rez') {
+    css = buildRezCSS(theme.game, theme.scrollbar);
   } else {
     // inform7, zmachine, or unknown — Parchment rules
     css = buildParchmentCSS(theme.game, theme.scrollbar);

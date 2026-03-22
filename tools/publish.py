@@ -124,8 +124,8 @@ def main():
 
         print()
         print("=== Published ===")
-        print(f"  Repo:  https://github.com/Johnesco/{args.game}")
-        print(f"  Site:  https://johnesco.github.io/{args.game}/play.html")
+        print(f"  Repo:  https://github.com/{paths.GH_ORG}/{args.game}")
+        print(f"  Site:  https://{paths.GH_ORG.lower()}.github.io/{args.game}/play.html")
         print("  (Pages may take a minute to deploy)")
     else:
         # --- Subsequent publishes ---

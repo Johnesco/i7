@@ -15,7 +15,8 @@ python tools/pipeline.py game-name --ship         # compile + test + register + 
 
 | Step | Script | What it produces |
 |------|--------|-----------------|
-| Compile | `tools/compile.py <name>` | `.ulx`, `play.html`, `walkthrough.html`, `index.html`, `source.html`, transcript, guide |
+| Compile (I7) | `tools/compile.py <name>` | `.ulx`, `play.html`, `walkthrough.html`, `index.html`, `source.html`, transcript, guide |
+| Compile (Sharpee) | `tools/compile_sharpee.py <name>` | `play.html`, `*.js` bundle, `styles.css`, `theme-listener.js` |
 | Extract commands | `tools/extract_commands.py` | `walkthrough.txt` from transcript or source |
 | Generate pages | `tools/web/generate_pages.py` | `index.html`, `source.html` (manual override) |
 | Register | `tools/register_game.py` | `games.json` + `cards.json` entries |
@@ -38,6 +39,39 @@ python /c/code/ifhub/tools/compile.py <name> --source <path/to/story.ni> --compi
 ```
 
 If `tests/inform7/walkthrough.txt` exists, compile.py automatically runs the walkthrough, generates the transcript and guide, and copies all walkthrough files to the web root. It also auto-generates `index.html` and `source.html` from `story.ni` metadata if they don't exist.
+
+### Sharpee (`compile_sharpee.py`)
+
+Sharpee games are authored as npm projects in an external workspace (`/c/code/sharpee/<game>/`). The build script bridges the external workspace and the ifhub project.
+
+```bash
+# One command: build in Sharpee workspace + import into IF Hub
+python /c/code/ifhub/tools/compile_sharpee.py <name>
+python /c/code/ifhub/tools/compile_sharpee.py <name> --force  # overwrite play.html
+```
+
+Requires `tests/project.conf` in the ifhub project with:
+```bash
+ENGINE=sharpee
+SHARPEE_DIR=/c/code/sharpee/<npm-project>
+TITLE="Game Title"
+```
+
+**Scaffolding a new Sharpee game:**
+```bash
+cd /c/code/sharpee
+npx @sharpee/sharpee init <game-name> -y
+cd <game-name> && npx @sharpee/sharpee init-browser && npm install
+```
+
+Then create the ifhub project dir and config:
+```bash
+mkdir -p projects/<name>/tests
+# Create tests/project.conf with SHARPEE_DIR pointing to the npm project
+python tools/compile_sharpee.py <name> --force
+python tools/register_game.py --name <id> --title "Title" --engine sharpee
+python tools/publish.py <name>
+```
 
 ### Pipeline (all engines)
 
@@ -88,6 +122,25 @@ python /c/code/ifhub/tools/pipeline.py <name> compile test
 
 - **Native Windows** (preferred): `tools/interpreters/glulxe.exe` + `dfrotz.exe` — built via MSYS2, auto-detected by `project.conf`
 - **WSL fallback**: `~/glulxe/glulxe` + `~/frotz-install/usr/games/dfrotz`
+
+### Sharpee Testing
+
+Sharpee uses its own transcript-based test system (`@sharpee/transcript-tester`). Tests live in the Sharpee project workspace, not in the ifhub project.
+
+```bash
+cd /c/code/sharpee/<game>
+
+# Build + run all transcript tests:
+npx sharpee build --test
+
+# Interactive play (REPL with debug commands):
+npx transcript-test --play
+
+# Run specific transcript file:
+npx transcript-test walkthroughs/wt-01.transcript
+```
+
+Transcript files use `> command` / `[OK: contains "text"]` assertions. See `/c/code/fork/sharpee/docs/testing/README.md` for the full format spec.
 
 ## Creating a Walkthrough
 
@@ -179,12 +232,14 @@ python -m http.server 8000 --directory projects/<name>
 | Web player setup | `C:\code\ifhub\tools\web\` |
 | Native interpreters | `C:\code\ifhub\tools\interpreters\` |
 | RegTest runner | `C:\code\ifhub\tools\regtest.py` |
+| Sharpee build + import | `C:\code\ifhub\tools\compile_sharpee.py` |
 | Pipeline orchestrator | `C:\code\ifhub\tools\pipeline.py` |
 | Parchment troubleshooting | `C:\code\ifhub\reference\parchment-troubleshooting.md` |
 
 ## Key Rules
 
 - `story.ni` is the single source of truth for each Inform 7 project
+- Sharpee game source lives in `/c/code/sharpee/<game>/`, not in the ifhub projects directory
 - Do NOT create `.inform/` IDE bundles — compile directly using `-source` and `-o` flags
 - For Inform 7 syntax and conventions, see `C:\code\ifhub\CLAUDE.md`
 - The hub serves games in-place via iframe from each game's own GitHub Pages URL

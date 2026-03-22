@@ -265,14 +265,8 @@ Promise.all([
   var cards = results[0];
   var hubs = results[1];
 
-  var params = new URLSearchParams(window.location.search);
-  var hubParam = params.get('hub');
-  var activeHub = hubs[0]; // default: "all"
-  if (hubParam) {
-    for (var i = 0; i < hubs.length; i++) {
-      if (hubs[i].id === hubParam) { activeHub = hubs[i]; break; }
-    }
-  }
+  var hubResult = resolveHub(hubs);
+  var activeHub = hubResult.activeHub || hubs[0]; // default: first hub ("all")
 
   // Update title/subtitle when a hub filter is active
   if (activeHub.id !== 'all') {
@@ -289,14 +283,6 @@ Promise.all([
     a.className = h.id === activeHub.id ? 'active' : '';
     hubBar.appendChild(a);
   });
-
-  // Filter cards by hub
-  function matchesHub(card, hub) {
-    if (!hub || !hub.filter) return true;
-    if (hub.filter.engine && card.engine !== hub.filter.engine) return false;
-    if (hub.filter.tag && (!card.tags || card.tags.indexOf(hub.filter.tag) === -1)) return false;
-    return true;
-  }
 
   var container = document.getElementById('games');
   var filtered = cards.filter(function(card) { return matchesHub(card, activeHub); });

@@ -5,6 +5,7 @@
   { "id": "sharpee", "title": "Sharpee Games", "description": "Parser IF built with the Sharpee TypeScript engine.", "filter": { "engine": "sharpee" } },
   { "id": "basic", "title": "BASIC Games", "description": "Type-in games from the 1980s BASIC era.", "filter": { "tag": "basic" } },
   { "id": "sound", "title": "Sound-Enabled", "description": "Games with embedded audio.", "filter": { "tag": "sound" } },
+  { "id": "rez", "title": "Rez Games", "description": "Choice-based IF built with the Rez engine.", "filter": { "engine": "rez" } },
   { "id": "cloak", "title": "Cloak of Darkness", "description": "The classic IF engine test, implemented across multiple engines.", "filter": { "tag": "cloak" } },
   { "id": "zork", "title": "Zork Series", "description": "All versions of Zork I.", "filter": { "tag": "zork" } }
 ]

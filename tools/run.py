@@ -14,8 +14,6 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass
-from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Dependency check
@@ -32,26 +30,30 @@ except ImportError:
     sys.exit(1)
 
 # ---------------------------------------------------------------------------
-# Constants (resolved relative to this script)
+# Shared library imports
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-I7_ROOT = os.path.dirname(SCRIPT_DIR)
-PROJECTS_DIR = os.path.join(I7_ROOT, "projects")
-
 sys.path.insert(0, SCRIPT_DIR)
 from lib import config  # noqa: E402
-IFHUB_DIR = os.path.join(I7_ROOT, "ifhub")
-PIPELINE_PY = os.path.join(SCRIPT_DIR, "pipeline.py")
-PUBLISH_PY = os.path.join(SCRIPT_DIR, "publish.py")
-DEV_SERVER_PY = os.path.join(SCRIPT_DIR, "dev-server.py")
-COMPILE_PY = os.path.join(SCRIPT_DIR, "compile.py")
-EXTRACT_COMMANDS_PY = os.path.join(SCRIPT_DIR, "extract_commands.py")
-GENERATE_PAGES_PY = os.path.join(SCRIPT_DIR, "web", "generate_pages.py")
-REGISTER_GAME_PY = os.path.join(SCRIPT_DIR, "register_game.py")
-PUSH_HUB_PY = os.path.join(SCRIPT_DIR, "push_hub.py")
-NEW_PROJECT_PY = os.path.join(SCRIPT_DIR, "new_project.py")
-TESTING_DIR = os.path.join(SCRIPT_DIR, "testing")
+from lib import paths  # noqa: E402
+from lib.projects import ProjectInfo, load_projects  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Path constants (from lib.paths + script-relative tools)
+# ---------------------------------------------------------------------------
+
+PROJECTS_DIR = str(paths.PROJECTS_DIR)
+PIPELINE_PY = str(paths.TOOLS_DIR / "pipeline.py")
+PUBLISH_PY = str(paths.TOOLS_DIR / "publish.py")
+DEV_SERVER_PY = str(paths.TOOLS_DIR / "dev-server.py")
+COMPILE_PY = str(paths.TOOLS_DIR / "compile.py")
+EXTRACT_COMMANDS_PY = str(paths.TOOLS_DIR / "extract_commands.py")
+GENERATE_PAGES_PY = str(paths.WEB_DIR / "generate_pages.py")
+REGISTER_GAME_PY = str(paths.TOOLS_DIR / "register_game.py")
+PUSH_HUB_PY = str(paths.TOOLS_DIR / "push_hub.py")
+NEW_PROJECT_PY = str(paths.TOOLS_DIR / "new_project.py")
+TESTING_DIR = str(paths.TESTING_DIR)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -85,90 +87,7 @@ def prompt_or_cancel(prompt_fn):
         sys.exit(0)
 
 
-# ---------------------------------------------------------------------------
-# Data model
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class ProjectInfo:
-    name: str
-    dir: str
-    engine: str = "unknown"
-    source_file: str = ""
-    sound: bool = False
-    hub_id: str = ""
-    tests: str = ""
-    has_walkthrough: bool = False
-    has_regtest: bool = False
-    golden_seed: str | None = None
-
-
-# ---------------------------------------------------------------------------
-# Project discovery
-# ---------------------------------------------------------------------------
-
-
-def load_projects() -> list[ProjectInfo]:
-    """Scan projects/ and return a list of ProjectInfo objects."""
-    projects = []
-    for name in sorted(os.listdir(PROJECTS_DIR)):
-        project_dir = os.path.join(PROJECTS_DIR, name)
-        if not os.path.isdir(project_dir):
-            continue
-
-        # Detect engine and source file
-        conf_fields = config.parse_conf_fields(project_dir)
-        engine = config.detect_engine(project_dir, conf_fields)
-        source_file = config.detect_source_file(project_dir, engine, conf_fields)
-        engine_spec = config.get_engine_spec(engine)
-
-        # Skip truly empty directories (no source and no play.html)
-        has_play = os.path.isfile(os.path.join(project_dir, "play.html"))
-        if not source_file and not has_play:
-            continue
-
-        fields = config.parse_pipeline_fields(
-            os.path.join(project_dir, "tests", "project.conf")
-        )
-
-        # Infer capabilities
-        sound = fields.get("PIPELINE_SOUND", "").lower() == "true"
-        if not sound and os.path.isdir(os.path.join(project_dir, "Sounds")):
-            sound = True
-
-        hub_id = fields.get("PIPELINE_HUB_ID", name)
-        tests = fields.get("PIPELINE_TESTS", "")
-
-        # Detect capabilities from test data files
-        has_walkthrough = os.path.isfile(
-            os.path.join(project_dir, "tests", "inform7", "walkthrough.txt")
-        )
-        has_regtest = bool(
-            list(Path(project_dir, "tests").glob("*.regtest"))
-            if Path(project_dir, "tests").is_dir() else []
-        )
-
-        # Only look up golden seed for engines with CLI tests
-        golden_seed = None
-        if engine_spec and engine_spec.has_cli_tests:
-            golden_seed = config.get_golden_seed(project_dir)
-
-        projects.append(
-            ProjectInfo(
-                name=name,
-                dir=project_dir,
-                engine=engine,
-                source_file=source_file,
-                sound=sound,
-                hub_id=hub_id,
-                tests=tests,
-                has_walkthrough=has_walkthrough,
-                has_regtest=has_regtest,
-                golden_seed=golden_seed,
-            )
-        )
-    return projects
+# ProjectInfo and load_projects are imported from lib.projects above.
 
 
 # ---------------------------------------------------------------------------

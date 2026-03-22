@@ -24,18 +24,18 @@ import shutil
 import sys
 from pathlib import Path
 
-THEME_LISTENER = """\
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from lib import web_setup
 
+THEME_LISTENER_SCRIPT = Path(__file__).resolve().parent / "parchment" / "theme-listener.js"
+
+THEME_INIT = """\
+
+<script src="theme-listener.js"></script>
 <script>
-/* -- IF Hub theme listener (Sharpee) -- */
-(function() {
-  function applyPlatformTheme(g, sb) {
-    var el = document.getElementById('platform-theme-override');
-    if (el) el.remove();
-    var style = document.createElement('style');
-    style.id = 'platform-theme-override';
-    style.textContent =
-      ':root {' +
+ThemeListener.init({
+  buildCSS: function(g, sb) {
+    return ':root {' +
       '  --dos-blue: ' + g.bodyBg + ';' +
       '  --dos-cyan: ' + g.inputFg + ';' +
       '  --dos-white: ' + g.emphFg + ';' +
@@ -55,55 +55,25 @@ THEME_LISTENER = """\
       '::-webkit-scrollbar { width: 10px; background: ' + sb.track + '; }\\n' +
       '::-webkit-scrollbar-thumb { background: ' + sb.thumb + '; border-radius: 4px; }\\n' +
       '::-webkit-scrollbar-thumb:hover { background: ' + sb.thumbHover + '; }\\n';
-    document.head.appendChild(style);
-  }
-
-  function removePlatformTheme() {
-    var el = document.getElementById('platform-theme-override');
-    if (el) el.remove();
-  }
-
-  window.addEventListener('message', function(e) {
-    if (!e.data) return;
-    if (e.data.type === 'ifhub:applyTheme') {
-      applyPlatformTheme(e.data.game, e.data.scrollbar);
-    }
-    if (e.data.type === 'ifhub:restoreOverlay') {
-      removePlatformTheme();
-    }
-  });
-
-  // Auto-apply theme from URL param (full-page mode from hub)
-  var urlTheme = new URLSearchParams(window.location.search).get('theme');
-  if (urlTheme && urlTheme !== 'classic') {
-    var s = document.createElement('script');
-    s.src = '/ifhub/themes.js';
-    s.onload = function() {
-      var t = getTheme(urlTheme);
-      if (t) applyPlatformTheme(t.game, t.scrollbar);
-    };
-    document.head.appendChild(s);
-  }
-})();
+  },
+  dispatchResize: false
+});
 </script>
 """
 
 
 def main():
     parser = argparse.ArgumentParser(description="Set up Sharpee web player")
-    parser.add_argument("--title", required=True, help="Game title")
+    web_setup.add_common_args(parser)
     parser.add_argument("--dist", help="Path to Sharpee dist/web/ directory")
     parser.add_argument("--html", help="Path to a single index.html (alternative to --dist)")
-    parser.add_argument("--out", required=True, help="Output project directory")
-    parser.add_argument("--force", action="store_true", help="Overwrite existing play.html")
     args = parser.parse_args()
 
     out_dir = Path(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    web_setup.ensure_output_dir(out_dir)
     play_html = out_dir / "play.html"
 
-    if play_html.exists() and not args.force:
-        print("  play.html already exists (use --force to overwrite)")
+    if web_setup.check_overwrite(play_html, args.force):
         return
 
     if args.dist:
@@ -146,11 +116,17 @@ def main():
     # Replace <title> with the provided title
     html = re.sub(r'<title>[^<]*</title>', f'<title>{args.title}</title>', html)
 
-    # Inject hub theme listener before </body>
+    # Copy theme-listener.js alongside play.html
+    tl_dest = out_dir / "theme-listener.js"
+    if not tl_dest.exists() or args.force:
+        shutil.copy2(THEME_LISTENER_SCRIPT, tl_dest)
+        print(f"  Copied theme-listener.js")
+
+    # Inject hub theme init before </body>
     if "</body>" in html:
-        html = html.replace("</body>", THEME_LISTENER + "</body>")
+        html = html.replace("</body>", THEME_INIT + "</body>")
     else:
-        html += THEME_LISTENER
+        html += THEME_INIT
 
     play_html.write_text(html, encoding="utf-8")
     print(f"  Generated play.html ({len(html)} bytes)")

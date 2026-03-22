@@ -1,13 +1,24 @@
 // IF Hub Theme System
 // Themes modeled after platforms Infocom shipped Z-machine games on
 
-// Load retro platform fonts from Google Fonts
-(function() {
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&family=Silkscreen&family=Sixtyfour&family=Tiny5&family=VT323&family=Workbench&display=swap';
-    document.head.appendChild(link);
-})();
+// Canonical retro font URL (shared by all theme callers)
+var RETRO_FONTS_URL = 'https://fonts.googleapis.com/css2?family=DotGothic16&family=Pixelify+Sans&family=Press+Start+2P&family=Silkscreen&family=Sixtyfour&family=Tiny5&family=VT323&family=Workbench&display=swap';
+
+// Load retro platform fonts into a document (defaults to current document)
+function ensureRetroFonts(doc) {
+    doc = doc || document;
+    try {
+        if (doc.getElementById('retro-platform-fonts')) return;
+        var link = doc.createElement('link');
+        link.id = 'retro-platform-fonts';
+        link.rel = 'stylesheet';
+        link.href = RETRO_FONTS_URL;
+        doc.head.appendChild(link);
+    } catch(e) {}
+}
+
+// Load fonts eagerly for current page
+ensureRetroFonts();
 
 var THEMES = [
     {
@@ -563,6 +574,41 @@ function initTheme(context) {
     }
 }
 
+// Shared style for theme select elements (used by createThemeDropdown and app.html buildStyleDropdown)
+var THEME_SELECT_STYLE = 'background:var(--input-bg);border:1px solid var(--border);color:var(--accent);border-radius:4px;padding:3px 8px;font-family:inherit;font-size:0.85em;cursor:pointer;';
+
+// Populate a <select> with theme options, returning the element
+function populateThemeOptions(select) {
+    for (var i = 0; i < THEMES.length; i++) {
+        var opt = document.createElement('option');
+        opt.value = THEMES[i].id;
+        opt.textContent = THEMES[i].name;
+        select.appendChild(opt);
+    }
+    return select;
+}
+
+// Resolve hub from URL params: returns { activeHub, hubParam }
+function resolveHub(hubs) {
+    var params = new URLSearchParams(window.location.search);
+    var hubParam = params.get('hub');
+    var activeHub = null;
+    if (hubParam) {
+        for (var i = 0; i < hubs.length; i++) {
+            if (hubs[i].id === hubParam) { activeHub = hubs[i]; break; }
+        }
+    }
+    return { activeHub: activeHub, hubParam: hubParam };
+}
+
+// Filter a data entry by hub filter criteria
+function matchesHub(entry, hub) {
+    if (!hub || !hub.filter) return true;
+    if (hub.filter.engine && entry.engine !== hub.filter.engine) return false;
+    if (hub.filter.tag && (!entry.tags || entry.tags.indexOf(hub.filter.tag) === -1)) return false;
+    return true;
+}
+
 function createThemeDropdown(containerId) {
     var container = document.getElementById(containerId);
     if (!container) return;
@@ -574,15 +620,9 @@ function createThemeDropdown(containerId) {
 
     var select = document.createElement('select');
     select.id = 'theme-select';
-    select.style.cssText = 'background:var(--input-bg);border:1px solid var(--border);color:var(--accent);border-radius:4px;padding:3px 8px;font-family:inherit;font-size:0.85em;cursor:pointer;';
-
-    for (var i = 0; i < THEMES.length; i++) {
-        var opt = document.createElement('option');
-        opt.value = THEMES[i].id;
-        opt.textContent = THEMES[i].name;
-        if (THEMES[i].id === getThemeId()) opt.selected = true;
-        select.appendChild(opt);
-    }
+    select.style.cssText = THEME_SELECT_STYLE;
+    populateThemeOptions(select);
+    select.value = getThemeId();
 
     select.addEventListener('change', function() {
         var id = this.value;
@@ -601,4 +641,114 @@ function createThemeDropdown(containerId) {
 
     container.appendChild(label);
     container.appendChild(select);
+}
+
+/* ==================================================================
+   CSS BUILDERS — engine-specific theme CSS generation
+   Used by app.html (iframe injection) and theme-listener.js (postMessage)
+   ================================================================== */
+
+function buildScrollbarCSS(sb) {
+  return '* { scrollbar-color: ' + sb.thumb + ' ' + sb.track + ' !important; }\n' +
+    '::-webkit-scrollbar { width: 10px; background: ' + sb.track + ' !important; }\n' +
+    '::-webkit-scrollbar-thumb { background: ' + sb.thumb + ' !important; border-radius: 4px; }\n' +
+    '::-webkit-scrollbar-thumb:hover { background: ' + sb.thumbHover + ' !important; }\n';
+}
+
+function buildChromeCSS(c, sb) {
+  return 'html, body { background: ' + c.pageBg + ' !important; color: ' + c.pageFg + ' !important; }\n' +
+    'h1, h2, h3, h4, strong { color: ' + c.headingFg + ' !important; }\n' +
+    'a { color: ' + c.accentFg + ' !important; }\n' +
+    'a:hover { color: ' + c.btnHoverBg + ' !important; }\n' +
+    'input, select, textarea { background: ' + c.inputBg + ' !important; color: ' + c.inputFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
+    'button { background: ' + c.btnBg + ' !important; color: ' + c.btnFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
+    'button:hover { background: ' + c.btnHoverBg + ' !important; }\n' +
+    'button.active, .tab-btn.active, .mode-btn.active { background: ' + c.activeTabBg + ' !important; color: ' + c.activeTabFg + ' !important; }\n' +
+    'pre, code { background: ' + c.codeBg + ' !important; color: ' + c.codeFg + ' !important; border-color: ' + c.border + ' !important; }\n' +
+    'table, th, td, tr { border-color: ' + c.border + ' !important; }\n' +
+    'th { color: ' + c.headingFg + ' !important; }\n' +
+    'td { color: ' + c.pageFg + ' !important; }\n' +
+    '.toolbar, .source-toolbar, .wt-toolbar, header, nav { background: ' + c.toolbarBg + ' !important; border-color: ' + c.border + ' !important; color: ' + c.mutedFg + ' !important; }\n' +
+    '.sidebar, .nav, .wt-sidebar { background: ' + c.toolbarBg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
+    '.nav-item, .wt-nav-item, .sidebar a { color: ' + c.mutedFg + ' !important; }\n' +
+    '.nav-item.active, .wt-nav-item.active, .sidebar a.active { color: ' + c.headingFg + ' !important; border-left-color: ' + c.accentFg + ' !important; background: ' + c.surfaceBg + ' !important; }\n' +
+    'footer { color: ' + c.footerFg + ' !important; border-color: ' + c.cardBorder + ' !important; }\n' +
+    buildScrollbarCSS(sb);
+}
+
+function buildParchmentCSS(g, sb) {
+  return 'body, html { background: ' + g.bodyBg + ' !important; }\n' +
+    '.BufferWindow { color: ' + g.bufferFg + ' !important; background-color: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; font-size: ' + g.bufferSize + ' !important; line-height: ' + g.bufferLineHeight + ' !important; }\n' +
+    '.BufferWindow span { color: ' + g.bufferFg + ' !important; }\n' +
+    '.BufferWindow span.reverse { color: ' + g.bufferBg + ' !important; background-color: ' + g.bufferFg + ' !important; }\n' +
+    '.BufferWindow .Style_input { color: ' + g.inputFg + ' !important; }\n' +
+    '.BufferWindow .Style_emphasized { color: ' + g.emphFg + ' !important; }\n' +
+    '.BufferWindow .Style_header { color: ' + g.headerFg + ' !important; }\n' +
+    '.BufferWindow .Style_subheader,\n' +
+    '.BufferWindow .Style_alert { color: ' + g.headerFg + ' !important; }\n' +
+    '.BufferWindow .Input,\n' +
+    '.BufferWindow textarea.Input { color: ' + g.inputFg + ' !important; caret-color: ' + g.inputFg + '; font-family: ' + g.monoFamily + ' !important; }\n' +
+    '.GridWindow { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; padding: 4px 12px !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; width: 100% !important; box-sizing: border-box !important; }\n' +
+    '.GridWindow span { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
+    '.GridWindow span.reverse { color: ' + g.gridFg + ' !important; background-color: ' + g.gridBg + ' !important; }\n' +
+    '#loadingpane { color: ' + g.bufferFg + '; background: ' + g.bodyBg + '; font-family: ' + g.monoFamily + '; }\n' +
+    '.WindowFrame { background: transparent !important; }\n' +
+    'div#gameport { background: linear-gradient(to bottom, ' + g.gridBg + ' 0px, ' + g.gridBg + ' ' + ((parseInt(g.gridLineHeight) || 20) + 10) + 'px, ' + g.bufferBg + ' ' + ((parseInt(g.gridLineHeight) || 20) + 10) + 'px) !important; }\n' +
+    buildScrollbarCSS(sb);
+}
+
+function buildInkCSS(g, sb) {
+  return 'body { background: ' + g.bodyBg + ' !important; color: ' + g.bufferFg + ' !important; font-family: ' + g.propFamily + ' !important; }\n' +
+    'h1 { color: ' + g.headerFg + ' !important; border-bottom-color: ' + g.gridBg + ' !important; }\n' +
+    '#story p { color: ' + g.bufferFg + ' !important; }\n' +
+    '.choice-echo { color: ' + g.gridFg + ' !important; }\n' +
+    '#choices { border-top-color: ' + g.gridBg + ' !important; }\n' +
+    '.choice { color: ' + g.inputFg + ' !important; font-family: ' + g.propFamily + ' !important; }\n' +
+    '.choice:hover { color: ' + g.headerFg + ' !important; }\n' +
+    '#end { color: ' + g.emphFg + ' !important; }\n' +
+    buildScrollbarCSS(sb);
+}
+
+function buildBasicCSS(g, sb) {
+  return 'body, html { background: ' + g.bodyBg + ' !important; color: ' + g.bufferFg + ' !important; font-family: ' + g.monoFamily + ' !important; }\n' +
+    'pre, .output, .terminal, #screen { color: ' + g.bufferFg + ' !important; background: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; }\n' +
+    'input, .input-line { color: ' + g.inputFg + ' !important; background: ' + g.bufferBg + ' !important; font-family: ' + g.monoFamily + ' !important; caret-color: ' + g.inputFg + '; }\n' +
+    buildScrollbarCSS(sb);
+}
+
+function buildSharpeeCSS(g, sb) {
+  return ':root {\n' +
+    '  --theme-bg: ' + g.bodyBg + ' !important;\n' +
+    '  --theme-bg-alt: ' + g.gridBg + ' !important;\n' +
+    '  --theme-text: ' + g.bufferFg + ' !important;\n' +
+    '  --theme-text-muted: ' + g.emphFg + ' !important;\n' +
+    '  --theme-accent: ' + g.inputFg + ' !important;\n' +
+    '  --theme-accent-text: ' + g.bodyBg + ' !important;\n' +
+    '  --theme-border: ' + g.gridBg + ' !important;\n' +
+    '  --theme-input-bg: ' + g.bufferBg + ' !important;\n' +
+    '  --theme-menu-bg: ' + g.gridBg + ' !important;\n' +
+    '  --theme-menu-hover: ' + g.bodyBg + ' !important;\n' +
+    '  --theme-font: ' + g.monoFamily + ' !important;\n' +
+    '  --theme-font-size: ' + g.bufferSize + ' !important;\n' +
+    '  --theme-line-height: ' + g.bufferLineHeight + ' !important;\n' +
+    '}\n' +
+    '#status-line { background: ' + g.gridBg + ' !important; color: ' + g.gridFg + ' !important; }\n' +
+    '#text-content p { color: ' + g.bufferFg + ' !important; }\n' +
+    '.command-echo { color: ' + g.emphFg + ' !important; }\n' +
+    '#command-input { color: ' + g.inputFg + ' !important; caret-color: ' + g.inputFg + '; }\n' +
+    '.prompt { color: ' + g.inputFg + ' !important; }\n' +
+    buildScrollbarCSS(sb);
+}
+
+function buildRezCSS(g, sb) {
+  return 'body, html { background: ' + g.bodyBg + ' !important; color: ' + g.bufferFg + ' !important; font-family: ' + g.propFamily + ' !important; }\n' +
+    '#game-container, .box, .card, .content, .section { background: ' + g.bufferBg + ' !important; color: ' + g.bufferFg + ' !important; }\n' +
+    '.title, .subtitle, h1, h2, h3, strong { color: ' + g.headerFg + ' !important; }\n' +
+    'a, a.choice { color: ' + g.inputFg + ' !important; }\n' +
+    'a:hover, a.choice:hover { color: ' + g.headerFg + ' !important; }\n' +
+    '.button, button { background: ' + g.gridBg + ' !important; color: ' + g.gridFg + ' !important; border-color: ' + g.gridBg + ' !important; }\n' +
+    '.button:hover, button:hover { background: ' + g.emphFg + ' !important; }\n' +
+    'blockquote { border-left-color: ' + g.inputFg + ' !important; color: ' + g.emphFg + ' !important; }\n' +
+    '.navbar, .hero { background: ' + g.gridBg + ' !important; }\n' +
+    buildScrollbarCSS(sb);
 }

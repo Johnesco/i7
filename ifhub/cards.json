@@ -220,13 +220,13 @@
     "tags": ["cloak", "demo"]
   },
   {
-    "id": "guess_the_verb-sharpee",
-    "base": "guess_the_verb-sharpee",
+    "id": "guess-the-verb-sharpee",
+    "base": "guess-the-verb-sharpee",
     "title": "Guess the Verb (Sharpee)",
     "meta": "A Sharpee Game",
     "description": "A Parser Puzzle Laboratory -- explore your grandmother's old house and find the family heirloom she left behind.",
-    "playUrl": "/guess_the_verb-sharpee/play.html",
-    "landingUrl": "/guess_the_verb-sharpee/",
+    "playUrl": "/guess-the-verb-sharpee/play.html",
+    "landingUrl": "/guess-the-verb-sharpee/",
     "engine": "sharpee",
     "tags": []
   },
@@ -240,5 +240,16 @@
     "landingUrl": "/cloak-ink/",
     "engine": "ink",
     "tags": ["cloak", "demo", "classic"]
+  },
+  {
+    "id": "cloak-rez",
+    "base": "cloak-rez",
+    "title": "Cloak of Darkness (Rez)",
+    "meta": "A Rez Game",
+    "description": "The classic IF benchmark implemented in Rez — an open-source choice-based IF engine.",
+    "playUrl": "/cloak-rez/play.html",
+    "landingUrl": "/cloak-rez/",
+    "engine": "rez",
+    "tags": ["cloak", "demo"]
   }
 ]

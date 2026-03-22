@@ -10,9 +10,9 @@
 
 html, body {
   min-height: 100%;
-  background: #0a0a0a;
-  color: #d4c5a9;
-  font-family: Georgia, "Times New Roman", serif;
+  background: var(--page-bg, #0a0a0a);
+  color: var(--page-fg, #d4c5a9);
+  font-family: var(--font-family, Georgia, "Times New Roman", serif);
 }
 
 .page {
@@ -23,7 +23,7 @@ html, body {
 
 h1 {
   font-size: 1.6em;
-  color: #e8d8b0;
+  color: var(--heading-fg, #e8d8b0);
   margin-bottom: 6px;
 }
 
@@ -260,6 +260,8 @@ hr {
 .screenshot .green { color: #6a9f55; }
 .screenshot .yellow { color: #c4a32e; }
 </style>
+<script src="themes.js"></script>
+<script>initTheme('library');</script>
 </head>
 <body>
 <div class="page">

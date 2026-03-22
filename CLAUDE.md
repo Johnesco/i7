@@ -47,6 +47,7 @@ C:\code\ifhub\
 │   ├── build_site.py      ← Assemble _site/ for deployment (legacy — zork1 only)
 │   ├── snapshot.py        ← Freeze/update version snapshots (legacy — zork1 only)
 │   ├── compile.py         ← I7→I6→Glulx→Blorb→web player compilation
+│   ├── compile_sharpee.py ← Build Sharpee game + import into IF Hub
 │   ├── pipeline.py        ← Unified build pipeline orchestrator
 │   ├── publish.py         ← Publish a project to its own GitHub Pages repo
 │   ├── run.py             ← Interactive pipeline runner (Python CLI with arrow-key menus)
@@ -62,6 +63,8 @@ C:\code\ifhub\
 │   │   ├── build.sh            ← MSYS2 build script (clones + compiles from source)
 │   │   ├── glulxe.exe          ← Glulx interpreter (gitignored, built by build.sh)
 │   │   └── dfrotz.exe          ← Z-machine interpreter (gitignored, built by build.sh)
+│   ├── rez/               ← Rez compiler (pre-built binary from GitHub releases)
+│   │   └── rez_windows.exe     ← Rez v1.9.5 escript (gitignored, ~24MB)
 │   ├── testing/           ← Generic testing framework
 │   │   ├── run_walkthrough.py  ← Walkthrough runner (config-driven)
 │   │   ├── find_seeds.py       ← RNG seed sweeper (config-driven)
@@ -361,11 +364,33 @@ The hub at `ifhub/` serves games **in-place** — it iframes each game's own pla
 3. Add card metadata to `cards.json`
 4. Verify `johnesco.github.io/<game>/play.html` loads before adding to the hub
 
-**Local development:**
+**Local development (Portman):**
+
+Use Portman (`C:\code\portman\portman.py`) for all local serving. It's a single-process Flask server that eliminates zombie processes and port conflicts across Claude sessions.
+
+```bash
+# Register ifhub + all game projects (one-time, persists in ~/.portman/config.json):
+python /c/code/portman/portman.py add ifhub "C:\code\ifhub\ifhub"
+for dir in /c/code/ifhub/projects/*/; do
+    python /c/code/portman/portman.py add "$(basename $dir)" "$dir"
+done
+
+# Start serving (default port 9000):
+python /c/code/portman/portman.py serve
+# Dashboard: http://127.0.0.1:9000/
+# Hub: http://127.0.0.1:9000/ifhub/app.html
+# Games: http://127.0.0.1:9000/<game>/play.html
+
+# Check status / list sites from any Claude session:
+python /c/code/portman/portman.py status
+python /c/code/portman/portman.py ls
+```
+
+Use `/serve` to start Portman with auto-registration, `/kill-servers` to stop it. The `Portman.bat` shortcut on the Desktop also launches it.
+
+**Legacy fallback** (only if Portman is unavailable):
 ```bash
 python tools/dev-server.py [--port 8000]
-# Maps /ifhub/* → ifhub/, /<game>/* → projects/<game>/
-# Open http://127.0.0.1:8000/ifhub/app.html
 ```
 
 ### Multi-Hub Collections
@@ -463,21 +488,80 @@ python tools/push_hub.py <id>
 | Is Inform 7 / Z-machine | `parchment` | Use `setup_web.py` (not `setup_basic.py`) |
 | Is a Sharpee game | `sharpee` | TypeScript IF engine, CSS variable theming |
 
-### Sharpee Games (`tools/web/setup_sharpee.py`)
+### Sharpee Games (`tools/compile_sharpee.py`)
 
-[Sharpee](https://sharpee.net/) is a TypeScript-based parser IF engine. Games build to a `dist/web/` directory containing `index.html` + `styles.css` + `{game}.js`. The hub integrates via CSS custom property injection — Sharpee already uses `--theme-*` variables.
+[Sharpee](https://sharpee.net/) is a TypeScript-based parser IF engine. Sharpee games are authored as npm projects in an external workspace (`/c/code/sharpee/<game>/`) and imported into IF Hub after building.
 
-```bash
-# From a Sharpee build output:
-python /c/code/ifhub/tools/web/setup_sharpee.py \
-    --title "My Game" --dist path/to/dist/web/game/ --out path/to/project
+**Workspace layout:**
+```
+/c/code/sharpee/              ← Sharpee authoring workspace (npm projects)
+    └── guess-the-verb/       ← Game project (npm init via @sharpee/sharpee)
+        ├── src/index.ts      ← Game source (imports from @sharpee/sharpee)
+        ├── src/browser-entry.ts ← Browser UI wiring
+        ├── browser/           ← Custom HTML + CSS templates
+        ├── package.json       ← Depends on @sharpee/sharpee from npm
+        └── dist/web/          ← Build output (guess-the-verb.js + index.html + styles.css)
 
-# Register and publish:
-python tools/register_game.py --name game-id --title "My Game" --engine sharpee
-python tools/publish.py game-id
+/c/code/fork/sharpee/         ← Engine fork (for contributions, not for authoring)
 ```
 
-The setup script copies the dist files, renames `index.html` → `play.html`, and injects the IF Hub theme listener (maps hub themes to Sharpee's `--theme-*` CSS variables).
+**One-command build + import:**
+```bash
+# Build in Sharpee workspace and import into IF Hub:
+python /c/code/ifhub/tools/compile_sharpee.py <game-name>
+python /c/code/ifhub/tools/compile_sharpee.py <game-name> --force  # overwrite play.html
+
+# Then register and publish like any other game:
+python tools/register_game.py --name <id> --title "Title" --engine sharpee
+python tools/publish.py <id>
+```
+
+`compile_sharpee.py` reads `tests/project.conf` in the ifhub project to find the external source:
+```bash
+# projects/<game>/tests/project.conf
+ENGINE=sharpee
+SHARPEE_DIR=/c/code/sharpee/<npm-project>
+TITLE="Game Title"
+PIPELINE_HUB_ID=<game_id>
+```
+
+**What it does:**
+1. Runs `npm install` if `node_modules/` is missing
+2. Runs `npx sharpee build-browser` in the Sharpee source dir
+3. Imports `dist/web/` into the ifhub project via `setup_sharpee.py`
+
+**Manual setup** (alternative to `compile_sharpee.py`):
+```bash
+python /c/code/ifhub/tools/web/setup_sharpee.py \
+    --title "My Game" --dist path/to/dist/web/ --out path/to/project
+```
+
+The setup script copies dist files, renames `index.html` → `play.html`, and injects the IF Hub theme listener (maps hub themes to Sharpee's `--theme-*` CSS variables).
+
+**Scaffolding a new Sharpee game:**
+```bash
+cd /c/code/sharpee
+npx @sharpee/sharpee init <game-name> -y
+cd <game-name>
+npx @sharpee/sharpee init-browser
+npm install
+```
+
+**Testing Sharpee games:** Sharpee has its own transcript-based testing system (`@sharpee/transcript-tester`). See `/c/code/fork/sharpee/docs/testing/README.md` for the full format spec. Quick reference:
+```bash
+# Build + run all transcript tests:
+cd /c/code/sharpee/<game>
+npx sharpee build --test
+
+# Interactive play (REPL):
+npx sharpee build
+npx transcript-test --play
+
+# Run specific transcript test:
+npx transcript-test walkthroughs/wt-01.transcript
+```
+
+Transcript files (`.transcript`) use YAML headers + `> command` / `[OK: contains "text"]` assertions. Walkthroughs chain state between files; unit tests run isolated.
 
 ### Other Formats (No Engine Needed)
 
@@ -505,7 +589,8 @@ python tools/pipeline.py game-name --ship         # compile + test + register + 
 | Step | Script | What it produces |
 |------|--------|-----------------|
 | Scaffold | `tools/new_project.py` | Project directory with source, tests, CI, CLAUDE.md |
-| Compile | `tools/compile.py` | `.ulx`, `play.html`, `walkthrough.html`, `index.html`, `source.html`, transcript, guide |
+| Compile (I7) | `tools/compile.py` | `.ulx`, `play.html`, `walkthrough.html`, `index.html`, `source.html`, transcript, guide |
+| Compile (Sharpee) | `tools/compile_sharpee.py` | `play.html`, `*.js` bundle, `styles.css`, `theme-listener.js` |
 | Extract commands | `tools/extract_commands.py` | `walkthrough.txt` from transcript or source |
 | Generate pages | `tools/web/generate_pages.py` | `index.html`, `source.html` (manual override) |
 | Register | `tools/register_game.py` | `games.json` + `cards.json` entries |
@@ -563,12 +648,14 @@ Optional additions per project:
 
 ### Known Projects
 
-| Project | Sound | CSS Effects | Tests |
-|---|---|---|---|
-| zork1 | blorb (v3+) | Mood palettes, CRT, tree, egg, sword (v3) | walkthrough, regtest, scenarios |
-| dracula | No | Static dark theme | walkthrough |
-| feverdream | blorb | Mood palettes, monitor, glass, fungus, spray | walkthrough (scoreless) |
-| sample | No | Static dark theme | walkthrough, regtest |
+| Project | Engine | Sound | CSS Effects | Tests |
+|---|---|---|---|---|
+| zork1 | inform7 | blorb (v3+) | Mood palettes, CRT, tree, egg, sword (v3) | walkthrough, regtest, scenarios |
+| dracula | inform7 | No | Static dark theme | walkthrough |
+| feverdream | inform7 | blorb | Mood palettes, monitor, glass, fungus, spray | walkthrough (scoreless) |
+| sample | inform7 | No | Static dark theme | walkthrough, regtest |
+| guess-the-verb-sharpee | sharpee | No | Theme listener | transcript tests (via Sharpee) |
+| cloak-rez | rez | No | Theme listener | None (choice-based) |
 
 All projects have `CLAUDE.md` referencing `reference/project-guide.md`, plus `project.conf` for the shared testing framework. See `reference/css-overlay.md` for the play.html theming architecture.
 

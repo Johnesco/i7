@@ -232,6 +232,7 @@ Card metadata for the hub homepage is maintained in `cards.json`. Each card repr
 | `dracula` | Dracula's Castle (Current) | No | `/dracula/play.html` | |
 | `feverdream` | Fever Dream | Blorb | `/feverdream/play.html` | |
 | `sample` | Sample | No | `/sample/play.html` | `sourceBrowser: true` |
+| `guess_the_verb-sharpee` | Guess the Verb (Sharpee) | No | `/guess_the_verb-sharpee/play.html` | Engine: Sharpee |
 
 ---
 
@@ -599,6 +600,34 @@ python /c/code/ifhub/tools/push_hub.py <game-name>
 ```
 
 Stages `games.json` and `cards.json`, commits with a message referencing the game name, and pushes. Skips commit if there are no staged changes. Used by both the CLI runner (`run.py`) and dashboard (`dashboard.py`) as the final step of publish-new.
+
+### 10.3e Sharpee Build + Import (`compile_sharpee.py`)
+
+```
+python /c/code/ifhub/tools/compile_sharpee.py <game-name> [--force]
+```
+
+Bridges the external Sharpee authoring workspace and the IF Hub project directory. Sharpee games are authored as npm projects at `/c/code/sharpee/<game>/` and built via the Sharpee CLI.
+
+**Steps:**
+1. Reads `tests/project.conf` for `SHARPEE_DIR` (path to npm project) and `TITLE`
+2. Runs `npm install` if `node_modules/` is missing
+3. Runs `npx sharpee build-browser` in the Sharpee source directory
+4. Calls `setup_sharpee.py` to import `dist/web/` into the ifhub project (renames `index.html` → `play.html`, injects hub theme listener)
+
+**Configuration** (`projects/<game>/tests/project.conf`):
+```
+ENGINE=sharpee
+SHARPEE_DIR=/c/code/sharpee/<npm-project>
+TITLE="Game Title"
+PIPELINE_HUB_ID=<game_id>
+```
+
+**Output:**
+- `play.html` — Sharpee player with hub theme listener injected
+- `<game>.js` — Bundled game + engine (esbuild output)
+- `styles.css` — Game-specific CSS
+- `theme-listener.js` — Hub theme integration script
 
 ### 10.4 Project Scaffolding (`new_project.py`)
 

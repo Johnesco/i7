@@ -18,11 +18,15 @@ IFHUB_DIR = I7_ROOT / "ifhub"
 TESTING_DIR = TOOLS_DIR / "testing"
 WEB_DIR = TOOLS_DIR / "web"
 
-# Compiler paths (Windows system install)
-I7_COMPILER = Path(r"C:\Program Files\Inform7IDE\Compilers\inform7.exe")
-I6_COMPILER = Path(r"C:\Program Files\Inform7IDE\Compilers\inform6.exe")
-INBLORB = Path(r"C:\Program Files\Inform7IDE\Compilers\inblorb.exe")
-I7_INTERNAL = Path(r"C:\Program Files\Inform7IDE\Internal")
+# Compiler paths — override with INFORM7_HOME env var if installed elsewhere
+_I7_HOME = Path(os.environ.get("INFORM7_HOME", r"C:\Program Files\Inform7IDE"))
+I7_COMPILER = _I7_HOME / "Compilers" / "inform7.exe"
+I6_COMPILER = _I7_HOME / "Compilers" / "inform6.exe"
+INBLORB = _I7_HOME / "Compilers" / "inblorb.exe"
+I7_INTERNAL = _I7_HOME / "Internal"
+
+# GitHub organization — override with IFHUB_GH_ORG env var
+GH_ORG = os.environ.get("IFHUB_GH_ORG", "Johnesco")
 
 # Native interpreters
 NATIVE_GLULXE = TOOLS_DIR / "interpreters" / "glulxe.exe"

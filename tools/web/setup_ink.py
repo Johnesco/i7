@@ -18,6 +18,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from lib import web_setup
+
 # Known inklecate locations (checked in order)
 INKLECATE_PATHS = [
     Path("C:/Program Files/Inky/resources/app.asar.unpacked/"
@@ -72,16 +75,13 @@ def compile_ink(ink_path, json_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Set up Ink web player.")
-    parser.add_argument("--title", required=True, help="Story title")
+    web_setup.add_common_args(parser)
     parser.add_argument("--ink", help="Path to .ink source file")
     parser.add_argument("--json", help="Path to pre-compiled .json story")
-    parser.add_argument("--out", required=True, help="Output directory")
-    parser.add_argument("--force", action="store_true",
-                        help="Overwrite play.html")
     args = parser.parse_args()
 
     out_dir = Path(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    web_setup.ensure_output_dir(out_dir)
     script_dir = Path(__file__).resolve().parent
 
     # Determine story JSON
@@ -128,9 +128,7 @@ def main():
         sys.exit(1)
 
     play_html = out_dir / "play.html"
-    if play_html.exists() and not args.force:
-        print(f"  play.html already exists (use --force to overwrite)")
-    else:
+    if not web_setup.check_overwrite(play_html, args.force):
         print("Generating play.html...")
         template = template_path.read_text(encoding="utf-8")
         html = template.replace("__TITLE__", args.title)

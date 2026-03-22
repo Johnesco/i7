@@ -10,9 +10,9 @@
 
 html, body {
   min-height: 100%;
-  background: #0a0a0a;
-  color: #d4c5a9;
-  font-family: Georgia, "Times New Roman", serif;
+  background: var(--page-bg, #0a0a0a);
+  color: var(--page-fg, #d4c5a9);
+  font-family: var(--font-family, Georgia, "Times New Roman", serif);
 }
 
 .page {
@@ -23,18 +23,18 @@ html, body {
 
 h1 {
   font-size: 1.6em;
-  color: #e8d8b0;
+  color: var(--heading-fg, #e8d8b0);
   margin-bottom: 6px;
 }
 
 .subtitle {
   font-size: 0.95em;
-  color: #806050;
+  color: var(--dim, #806050);
   margin-bottom: 40px;
 }
 
 .subtitle a {
-  color: #a08060;
+  color: var(--link-fg, #a08060);
   text-decoration: none;
   border-bottom: 1px solid transparent;
 }
@@ -46,10 +46,10 @@ h1 {
 
 h2 {
   font-size: 1.2em;
-  color: #e8d090;
+  color: var(--accent, #e8d090);
   margin: 40px 0 12px;
   padding-bottom: 6px;
-  border-bottom: 1px solid #2a2418;
+  border-bottom: 1px solid var(--border, #2a2418);
 }
 
 h3 {
@@ -74,24 +74,24 @@ em {
 }
 
 a {
-  color: #a08060;
+  color: var(--link-fg, #a08060);
 }
 
 code {
   font-family: "SF Mono", "Fira Code", Consolas, "Courier New", monospace;
   font-size: 0.88em;
-  background: #151008;
-  border: 1px solid #1e1a14;
+  background: var(--code-bg, #151008);
+  border: 1px solid var(--card-border, #1e1a14);
   border-radius: 3px;
   padding: 1px 5px;
-  color: #c4b48a;
+  color: var(--code-fg, #c4b48a);
 }
 
 pre {
   font-family: "SF Mono", "Fira Code", Consolas, "Courier New", monospace;
   font-size: 0.85em;
-  background: #0e0c08;
-  border: 1px solid #1e1a14;
+  background: var(--code-bg, #0e0c08);
+  border: 1px solid var(--card-border, #1e1a14);
   border-radius: 6px;
   padding: 16px 20px;
   margin: 12px 0 20px;
@@ -271,6 +271,8 @@ hr {
   code { font-size: 0.85em; word-break: break-all; }
 }
 </style>
+<script src="themes.js"></script>
+<script>initTheme('library');</script>
 </head>
 <body>
 

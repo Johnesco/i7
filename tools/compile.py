@@ -155,6 +155,9 @@ def main():
             sys.exit(r.returncode)
 
         # Generate walkthrough transcript if commands and interpreter exist
+        # NOTE: Guide generation + copy logic parallels pipeline.py stage_test().
+        # Kept separate: compile.py runs the interpreter and copies 3 files,
+        # while pipeline.py delegates to run_walkthrough.py and copies only the guide.
         walk_cmds = project_dir / "tests" / "inform7" / "walkthrough.txt"
         walk_out = project_dir / "tests" / "inform7" / "walkthrough_output.txt"
         walk_guide = project_dir / "tests" / "inform7" / "walkthrough-guide.txt"

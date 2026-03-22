@@ -23,7 +23,7 @@ py2_readline = False
 try:
     unicode
     py2_readline = True
-except:
+except NameError:
     pass
 
 import sys
@@ -163,7 +163,7 @@ class Command:
             else:
                 try:
                     self.cmd = unichr(int(cmd))
-                except:
+                except (ValueError, OverflowError):
                     pass
             if self.cmd is None:
                 raise Exception('Unable to interpret char "%s"' % (cmd,))
@@ -172,7 +172,7 @@ class Command:
         elif self.type == 'hyperlink':
             try:
                 cmd = int(cmd)
-            except:
+            except (ValueError, TypeError):
                 pass
             self.cmd = cmd
         elif self.type == 'mouse':
@@ -181,7 +181,7 @@ class Command:
                 self.x = int(ls[0])
                 self.y = int(ls[1])
                 self.cmd = (self.x, self.y,)
-            except:
+            except (ValueError, IndexError):
                 raise Exception('Mouse event must provide numeric x and y')
         elif self.type == 'refresh':
             self.cmd = None
@@ -193,7 +193,7 @@ class Command:
                 ls = cmd.split()
                 self.width = int(ls[0])
                 self.height = int(ls[1])
-            except:
+            except (ValueError, IndexError):
                 pass
         elif self.type == 'include':
             self.cmd = cmd
@@ -779,7 +779,7 @@ class GameStateRemGlk(GameState):
                 try:
                     update = json.loads(dat)
                     break
-                except:
+                except (json.JSONDecodeError, ValueError):
                     pass
                 
         if time.time() >= timeout_time:
@@ -1005,7 +1005,7 @@ class ObjPrint:
     NoneType = type(None)
     try:
         UnicodeType = unicode
-    except:
+    except NameError:
         UnicodeType = str
     
     @staticmethod

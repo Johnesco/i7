@@ -214,6 +214,10 @@ def stage_test(name: str, project_dir: Path, cfg_pipeline,
                 raise RuntimeError(f"walkthrough failed (exit {r.returncode})")
 
             # Post-test: regenerate guide and sync
+            # NOTE: Guide generation + copy logic parallels compile.py.
+            # Kept separate: pipeline delegates interpreter run to run_walkthrough.py
+            # and copies only the guide; compile.py runs the interpreter directly
+            # and copies 3 files (transcript, commands, guide).
             wt_src_dir = project_dir / "tests" / "inform7"
             wt_output = wt_src_dir / "walkthrough_output.txt"
             wt_commands = wt_src_dir / "walkthrough.txt"

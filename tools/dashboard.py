@@ -9,8 +9,6 @@ Opens a browser-based dashboard for managing IF Hub game projects.
 Matches the IF Hub dark-gold theme.
 """
 
-import glob as _glob_mod
-import hashlib
 import json
 import os
 import re
@@ -32,28 +30,33 @@ except ImportError:
     sys.exit(1)
 
 # ---------------------------------------------------------------------------
-# Paths
+# Shared library imports
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-I7_ROOT = os.path.dirname(SCRIPT_DIR)
-PROJECTS_DIR = os.path.join(I7_ROOT, "projects")
-COMPILE_PY = os.path.join(SCRIPT_DIR, "compile.py")
-EXTRACT_COMMANDS_PY = os.path.join(SCRIPT_DIR, "extract_commands.py")
-GENERATE_PAGES_PY = os.path.join(SCRIPT_DIR, "web", "generate_pages.py")
-REGISTER_GAME_PY = os.path.join(SCRIPT_DIR, "register_game.py")
-UNREGISTER_GAME_PY = os.path.join(SCRIPT_DIR, "unregister_game.py")
-PUBLISH_PY = os.path.join(SCRIPT_DIR, "publish.py")
-PIPELINE_PY = os.path.join(SCRIPT_DIR, "pipeline.py")
-NEW_PROJECT_PY = os.path.join(SCRIPT_DIR, "new_project.py")
-PUSH_HUB_PY = os.path.join(SCRIPT_DIR, "push_hub.py")
-SETUP_BASIC_PY = os.path.join(SCRIPT_DIR, "web", "setup_basic.py")
-SETUP_INK_PY = os.path.join(SCRIPT_DIR, "web", "setup_ink.py")
-SETUP_SHARPEE_PY = os.path.join(SCRIPT_DIR, "web", "setup_sharpee.py")
-TESTING_DIR = os.path.join(SCRIPT_DIR, "testing")
-
 sys.path.insert(0, SCRIPT_DIR)
 from lib import config as _libconfig  # noqa: E402
+from lib import paths  # noqa: E402
+from lib.projects import ProjectInfo, load_projects as _load_projects  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Path constants (from lib.paths + script-relative tools)
+# ---------------------------------------------------------------------------
+
+PROJECTS_DIR = str(paths.PROJECTS_DIR)
+COMPILE_PY = str(paths.TOOLS_DIR / "compile.py")
+EXTRACT_COMMANDS_PY = str(paths.TOOLS_DIR / "extract_commands.py")
+GENERATE_PAGES_PY = str(paths.WEB_DIR / "generate_pages.py")
+REGISTER_GAME_PY = str(paths.TOOLS_DIR / "register_game.py")
+UNREGISTER_GAME_PY = str(paths.TOOLS_DIR / "unregister_game.py")
+PUBLISH_PY = str(paths.TOOLS_DIR / "publish.py")
+PIPELINE_PY = str(paths.TOOLS_DIR / "pipeline.py")
+NEW_PROJECT_PY = str(paths.TOOLS_DIR / "new_project.py")
+PUSH_HUB_PY = str(paths.TOOLS_DIR / "push_hub.py")
+SETUP_BASIC_PY = str(paths.WEB_DIR / "setup_basic.py")
+SETUP_INK_PY = str(paths.WEB_DIR / "setup_ink.py")
+SETUP_SHARPEE_PY = str(paths.WEB_DIR / "setup_sharpee.py")
+TESTING_DIR = str(paths.TESTING_DIR)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -66,251 +69,13 @@ def py_cmd(*args):
 
 
 # ---------------------------------------------------------------------------
-# Project Discovery
+# Project Discovery — delegates to lib.projects
 # ---------------------------------------------------------------------------
 
 
-@dataclass
-class ProjectInfo:
-    name: str
-    dir: str
-    engine: str = "unknown"        # inform7, wwwbasic, qbjc, applesoft, jsdos, twine, unknown
-    source_file: str = ""          # primary source filename (story.ni, game.bas, etc.)
-    sound: bool = False
-    hub_id: str = ""
-    has_source: bool = False
-    has_walkthrough: bool = False
-    has_regtest: bool = False
-    has_test_me: bool = False
-    has_play_html: bool = False
-    has_binary: bool = False       # .ulx, .gblorb, .js compiled output, etc.
-    has_index: bool = False
-    has_source_html: bool = False
-    has_git: bool = False
-    registered: bool = False
-    # Pipeline state enrichment
-    pipeline_state: dict = field(default_factory=dict)
-    binary_name: str = ""
-    binary_size: int = 0
-    binary_mtime: float = 0
-    source_mtime: float = 0
-    compile_stale: bool = True
-    test_stale: bool = True
-    failed_stage: str = ""
-    stage_status: dict = field(default_factory=dict)
-
-
-def load_registered_ids():
-    """Return set of game IDs currently in games.json."""
-    games_path = os.path.join(I7_ROOT, "ifhub", "games.json")
-    try:
-        with open(games_path, "r", encoding="utf-8") as f:
-            return {g["id"] for g in json.load(f)}
-    except (OSError, json.JSONDecodeError):
-        return set()
-
-
 def load_projects():
-    registered_ids = load_registered_ids()
-    projects = []
-    for name in sorted(os.listdir(PROJECTS_DIR)):
-        project_dir = os.path.join(PROJECTS_DIR, name)
-        if not os.path.isdir(project_dir):
-            continue
-
-        # Parse config fields via shared library
-        fields = _libconfig.parse_conf_fields(project_dir)
-
-        engine = _libconfig.detect_engine(project_dir, fields)
-        source_file = _libconfig.detect_source_file(project_dir, engine, fields)
-        source_path = os.path.join(project_dir, source_file) if source_file else ""
-        has_source = bool(source_file) and os.path.isfile(source_path)
-        has_play = os.path.isfile(os.path.join(project_dir, "play.html"))
-
-        sound = fields.get("PIPELINE_SOUND", "").lower() == "true"
-        if not sound and os.path.isdir(os.path.join(project_dir, "Sounds")):
-            sound = True
-
-        has_walkthrough = os.path.isfile(
-            os.path.join(project_dir, "tests", "inform7", "walkthrough.txt")
-        )
-        has_regtest = bool(_glob_mod.glob(
-            os.path.join(project_dir, "tests", "*.regtest")
-        ))
-
-        # Test me detection (Inform 7 only)
-        has_test_me = False
-        if engine == "inform7" and has_source:
-            try:
-                with open(source_path, "r", encoding="utf-8") as f:
-                    has_test_me = bool(
-                        re.search(r"Test\s+\w+\s+with", f.read(), re.IGNORECASE)
-                    )
-            except OSError:
-                pass
-
-        # Detect compiled binaries (engine-appropriate)
-        dir_files = os.listdir(project_dir)
-        if engine == "inform7":
-            has_binary = any(
-                f.endswith((".ulx", ".gblorb"))
-                for f in dir_files
-                if os.path.isfile(os.path.join(project_dir, f))
-            )
-        else:
-            # For non-I7: play.html IS the compiled output, or look for .js bundles
-            has_binary = has_play
-
-        has_index = os.path.isfile(os.path.join(project_dir, "index.html"))
-        has_source_html = os.path.isfile(os.path.join(project_dir, "source.html"))
-        has_git = os.path.isdir(os.path.join(project_dir, ".git"))
-        is_registered = (name in registered_ids
-                         or fields.get("PIPELINE_HUB_ID", "") in registered_ids
-                         or any(rid.startswith(name) for rid in registered_ids))
-
-        # --- Pipeline state enrichment ---
-        state_file = os.path.join(project_dir, ".pipeline-state")
-        pipeline_state = {}
-        try:
-            if os.path.isfile(state_file):
-                with open(state_file, "r", encoding="utf-8") as f:
-                    pipeline_state = json.load(f)
-        except (json.JSONDecodeError, OSError):
-            pass
-
-        # Source mtime
-        source_mt = 0.0
-        if has_source and source_path:
-            try:
-                source_mt = os.path.getmtime(source_path)
-            except OSError:
-                pass
-
-        # Find binary file for details
-        binary_name_str = ""
-        binary_sz = 0
-        binary_mt = 0.0
-        if engine == "inform7":
-            for fname in dir_files:
-                if fname.endswith((".gblorb", ".ulx")):
-                    bp = os.path.join(project_dir, fname)
-                    if os.path.isfile(bp):
-                        binary_name_str = fname
-                        try:
-                            binary_sz = os.path.getsize(bp)
-                            binary_mt = os.path.getmtime(bp)
-                        except OSError:
-                            pass
-                        break
-        elif has_play:
-            binary_name_str = "play.html"
-            bp = os.path.join(project_dir, "play.html")
-            try:
-                binary_sz = os.path.getsize(bp)
-                binary_mt = os.path.getmtime(bp)
-            except OSError:
-                pass
-
-        # Staleness: compare current hashes to pipeline state
-        compile_stale = True
-        if has_source and source_path:
-            try:
-                cur_hash = hashlib.md5(open(source_path, "rb").read()).hexdigest()
-                saved = pipeline_state.get("STAGE_COMPILE_SOURCE_HASH", "")
-                if saved and saved == cur_hash:
-                    compile_stale = False
-            except OSError:
-                pass
-
-        test_stale = True
-        if binary_name_str:
-            bp = os.path.join(project_dir, binary_name_str)
-            try:
-                cur_hash = hashlib.md5(open(bp, "rb").read()).hexdigest()
-                saved = pipeline_state.get("STAGE_TEST_BINARY_HASH", "")
-                if saved and saved == cur_hash:
-                    test_stale = False
-            except OSError:
-                pass
-
-        failed_stage = pipeline_state.get("STAGE_FAILED", "")
-
-        # Derive per-stage status
-        engine_spec = _libconfig.get_engine_spec(engine)
-        has_cli_tests = engine_spec.has_cli_tests if engine_spec else False
-        is_buildable = engine in ("inform7", "wwwbasic", "qbjc", "applesoft",
-                                  "bwbasic", "basic", "ink", "jsdos")
-
-        stage_status = {}
-
-        # Build status
-        if not is_buildable:
-            stage_status["build"] = "n/a"
-        elif failed_stage == "compile":
-            stage_status["build"] = "failed"
-        elif not pipeline_state.get("STAGE_COMPILE_SOURCE_HASH"):
-            stage_status["build"] = "not-run"
-        elif compile_stale:
-            stage_status["build"] = "stale"
-        else:
-            stage_status["build"] = "done"
-
-        # Test status
-        if not has_cli_tests or not (has_walkthrough or has_regtest):
-            stage_status["test"] = "n/a"
-        elif failed_stage == "test":
-            stage_status["test"] = "failed"
-        elif not has_binary:
-            stage_status["test"] = "blocked"
-        elif not pipeline_state.get("STAGE_TEST_BINARY_HASH"):
-            stage_status["test"] = "not-run"
-        elif test_stale:
-            stage_status["test"] = "stale"
-        else:
-            stage_status["test"] = "done"
-
-        # Package status
-        if has_index and has_source_html:
-            stage_status["package"] = "done"
-        else:
-            stage_status["package"] = "not-run"
-
-        # Register status
-        stage_status["register"] = "done" if is_registered else "not-run"
-
-        # Publish status
-        stage_status["publish"] = "done" if has_git else "not-run"
-
-        projects.append(
-            ProjectInfo(
-                name=name,
-                dir=project_dir,
-                engine=engine,
-                source_file=source_file,
-                sound=sound,
-                hub_id=fields.get("PIPELINE_HUB_ID", name),
-                has_source=has_source,
-                has_walkthrough=has_walkthrough,
-                has_regtest=has_regtest,
-                has_test_me=has_test_me,
-                has_play_html=has_play,
-                has_binary=has_binary,
-                has_index=has_index,
-                has_source_html=has_source_html,
-                has_git=has_git,
-                registered=is_registered,
-                pipeline_state=pipeline_state,
-                binary_name=binary_name_str,
-                binary_size=binary_sz,
-                binary_mtime=binary_mt,
-                source_mtime=source_mt,
-                compile_stale=compile_stale,
-                test_stale=test_stale,
-                failed_stage=failed_stage,
-                stage_status=stage_status,
-            )
-        )
-    return projects
+    """Load projects with full pipeline state enrichment for the dashboard."""
+    return _load_projects(enrich_pipeline=True)
 
 
 # ---------------------------------------------------------------------------

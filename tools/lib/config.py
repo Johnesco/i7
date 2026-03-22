@@ -110,6 +110,11 @@ ENGINE_REGISTRY: dict[str, EngineSpec] = {
         source_extensions=(".ts",),
         build_tool="setup_sharpee.py",
     ),
+    "rez": EngineSpec(
+        name="rez", label="Rez",
+        source_extensions=(".rez",),
+        build_tool="setup_rez.py",
+    ),
 }
 
 
@@ -152,6 +157,8 @@ def detect_engine(project_dir: str | Path, conf_fields: dict | None = None) -> s
         return "ink"
     if any(f.lower().endswith(".sharpee") for f in files):
         return "sharpee"
+    if any(f.lower().endswith(".rez") for f in files):
+        return "rez"
 
     return "unknown"
 
@@ -388,18 +395,15 @@ def parse_pipeline_fields(conf_path: str | Path) -> dict[str, str]:
     """Extract PIPELINE_* fields from a project.conf file.
 
     Backward-compatible helper used by run.py during the transition.
+    Delegates to _parse_kv() for the actual KEY=VALUE parsing, then
+    filters to only PIPELINE_* keys.
     """
-    fields: dict[str, str] = {}
-    try:
-        with open(conf_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                m = re.match(r'^(PIPELINE_\w+)=["\']?(.*?)["\']?\s*$', line)
-                if m:
-                    fields[m.group(1)] = m.group(2)
-    except OSError:
-        pass
-    return fields
+    conf_path = Path(conf_path)
+    # _parse_kv needs a project_dir for variable expansion; project.conf
+    # lives in tests/, so project_dir is one level up.
+    project_dir = conf_path.parent.parent
+    all_fields = _parse_kv(conf_path, project_dir)
+    return {k: v for k, v in all_fields.items() if k.startswith("PIPELINE_")}
 
 
 def extract_story_metadata(project_dir: str | Path) -> dict[str, str]:
