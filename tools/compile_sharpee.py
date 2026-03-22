@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+"""Build a Sharpee game and import into IF Hub.
+
+Bridges the Sharpee authoring workspace (external npm project) and the
+IF Hub project directory. Runs the npm build in the Sharpee source dir,
+then imports the dist output into the ifhub project via setup_sharpee.
+
+Usage:
+    python tools/compile_sharpee.py <game-name>
+    python tools/compile_sharpee.py <game-name> --force
+
+The game's tests/project.conf must define:
+    SHARPEE_DIR=<path to npm project>   (where npx sharpee build-browser runs)
+    TITLE="Game Title"                  (for play.html <title>)
+"""
+
+import argparse
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib import config, output, paths
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Build a Sharpee game and import into IF Hub.")
+    parser.add_argument("game", help="Game name (ifhub project directory under projects/)")
+    parser.add_argument("--force", action="store_true", help="Overwrite existing play.html")
+    args = parser.parse_args()
+
+    project_dir = paths.project_dir(args.game)
+    if not project_dir.is_dir():
+        print(f"ERROR: Project directory not found: {project_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    # Read project.conf
+    conf = config.parse_conf_fields(project_dir)
+    sharpee_dir = conf.get("SHARPEE_DIR", "")
+    title = conf.get("TITLE", args.game)
+
+    if not sharpee_dir:
+        print("ERROR: SHARPEE_DIR not set in tests/project.conf", file=sys.stderr)
+        print("  Add: SHARPEE_DIR=/path/to/sharpee/project", file=sys.stderr)
+        sys.exit(1)
+
+    # Convert POSIX paths (/c/code/...) to Windows (C:\code\...) if needed
+    if sharpee_dir.startswith("/"):
+        sharpee_dir = paths.to_windows(sharpee_dir)
+    sharpee_dir = Path(sharpee_dir)
+    if not sharpee_dir.is_dir():
+        print(f"ERROR: Sharpee source directory not found: {sharpee_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    if not (sharpee_dir / "package.json").exists():
+        print(f"ERROR: No package.json in {sharpee_dir} — not a valid npm project", file=sys.stderr)
+        sys.exit(1)
+
+    # --- Step 1: npm install (if needed) ---
+    node_modules = sharpee_dir / "node_modules"
+    if not node_modules.is_dir():
+        print("=== Installing dependencies ===")
+        result = subprocess.run(
+            ["npm", "install"],
+            cwd=str(sharpee_dir),
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            print(f"ERROR: npm install failed:\n{result.stderr}", file=sys.stderr)
+            sys.exit(1)
+        print("  Dependencies installed.")
+
+    # --- Step 2: Build ---
+    print(f"=== Building {title} ===")
+    print(f"  Source: {sharpee_dir}")
+    result = subprocess.run(
+        ["npx", "sharpee", "build-browser"],
+        cwd=str(sharpee_dir),
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        print(f"ERROR: Build failed:\n{result.stdout}\n{result.stderr}", file=sys.stderr)
+        sys.exit(1)
+
+    # Show build output (contains bundle size info)
+    for line in result.stdout.strip().splitlines():
+        print(f"  {line}")
+
+    dist_dir = sharpee_dir / "dist" / "web"
+    if not dist_dir.is_dir():
+        print(f"ERROR: Build did not produce dist/web/ in {sharpee_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    # --- Step 3: Import into IF Hub ---
+    print(f"\n=== Importing into {project_dir.name} ===")
+    setup_script = paths.WEB_DIR / "setup_sharpee.py"
+    import_args = [
+        sys.executable, str(setup_script),
+        "--title", title,
+        "--dist", str(dist_dir),
+        "--out", str(project_dir),
+    ]
+    if args.force:
+        import_args.append("--force")
+
+    result = subprocess.run(import_args, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"ERROR: Import failed:\n{result.stdout}\n{result.stderr}", file=sys.stderr)
+        sys.exit(1)
+
+    for line in result.stdout.strip().splitlines():
+        print(f"  {line}")
+
+    print(f"\n=== Done ===")
+    print(f"  Project: {project_dir}")
+    print(f"  Test:    python -m http.server 8000 --directory \"{project_dir}\"")
+    print(f"  Publish: python tools/publish.py {args.game}")
+
+
+if __name__ == "__main__":
+    main()

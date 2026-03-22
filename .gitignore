@@ -30,3 +30,14 @@ __pycache__/
 # Native interpreters (built locally via tools/interpreters/build.sh)
 tools/interpreters/*.exe
 tools/interpreters/build/
+
+# Rez compiler (downloaded binary, ~24MB)
+tools/rez/*.exe
+tools/rez/cache/
+tools/rez/cloak_test/
+tools/rez/dist/
+tools/rez/*.dump
+
+# Rez build output (intermediate compiler artifacts)
+projects/*/dist/
+projects/*/cache/
